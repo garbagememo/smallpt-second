@@ -11,12 +11,17 @@ const
   M_2PI=PI*2;
   M_1_PI=1/PI;
 type 
-  SphereClass=class
-    rad:real;       //radius
+  DetectorClass=Class
     p,e,c:Vec3;// position. emission,color
     refl:RefType;
-    constructor Create(rad_:real;p_,e_,c_:Vec3;refl_:RefType);
-    function intersect(const r:RayRecord):real;
+    constructor create(p_,e_,c_:Vec3;refl_:RefType);virtual;
+    function intersect(const r:RayRecord):real;virtual;abstract;
+  end;
+
+  SphereClass=class(DetectorClass)
+    rad:real;       //radius
+    constructor Create(rad_:real;p_,e_,c_:Vec3;refl_:RefType);virtual;
+    function intersect(const r:RayRecord):real;override;
   end;
   CamRecord=record
     o,d:Vec3;
@@ -61,9 +66,16 @@ begin
    result.d := dirct;
 end;
 
+constructor DetectorClass.Create(p_,e_,c_:Vec3;refl_:RefType);
+begin
+  p:=p_;e:=e_;c:=c_;refl:=refl_;
+end;
+
 constructor SphereClass.Create(rad_:real;p_,e_,c_:Vec3;refl_:RefType);
 begin
-  rad:=rad_;p:=p_;e:=e_;c:=c_;refl:=refl_;
+  inherited create(p_,e_,c_,refl_);
+  rad:=rad_;
+//  p:=p_;e:=e_;c:=c_;refl:=refl_;
 end;
 function SphereClass.intersect(const r:RayRecord):real;
 var
@@ -152,7 +164,7 @@ var
 begin
   t:=INF;
   for i:=0 to sph.count-1 do begin
-    d:=SphereClass(sph[i]).intersect(r);
+    d:=DetectorClass(sph[i]).intersect(r);
     if d<t then begin
       t:=d;
       id:=i;
@@ -164,7 +176,7 @@ end;
 function radiance(const r:RayRecord;depth:integer):Vec3;
 var
   id:integer;
-  obj:SphereClass;
+  obj:DetectorClass;
   x,n,f,nl,u,v,w,d:Vec3;
   p,r1,r2,r2s,t:real;
   into:boolean;
@@ -176,7 +188,7 @@ begin
   if intersect(r,t,id)=false then begin
     result:=ZeroVec;exit;
   end;
-  obj:=SphereClass(sph[id]);
+  obj:=DetectorClass(sph[id]);
   x:=r.o+r.d*t; n:=(x-obj.p).norm; f:=obj.c;
   if n.dot(r.d)<0 then nl:=n else nl:=n*-1;
   if (f.x>f.y)and(f.x>f.z) then
@@ -570,7 +582,7 @@ begin
   until c=endofoptions;
   height:=h;
   BMP.new(w,h);
-  SkyScene;
+  InitScene;
   Randomize;
 
 
@@ -587,7 +599,7 @@ begin
       for sy := 0 to 1 do begin
         for sx := 0 to 1 do begin
           for s := 0 to samps - 1 do begin
-            temp:=radiance_ne(cam.GetRay(x,y,sx,sy), 0,1);
+            temp:=radiance(cam.GetRay(x,y,sx,sy), 0);
             temp:= temp/ samps;
             r:= r+temp;
           end;(*samps*)
