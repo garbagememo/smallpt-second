@@ -10,17 +10,17 @@ const
   INF=1e20;
   M_2PI=PI*2;
   M_1_PI=1/PI;
-type 
-  DetectorClass=Class
+type
+  DetectorClass=class
     p,e,c:Vec3;// position. emission,color
     refl:RefType;
-    constructor create(p_,e_,c_:Vec3;refl_:RefType);virtual;
+    constructor Create(p_,e_,c_:Vec3;Refl_:RefType);virtual;
     function intersect(const r:RayRecord):real;virtual;abstract;
   end;
-
+    
   SphereClass=class(DetectorClass)
     rad:real;       //radius
-    constructor Create(rad_:real;p_,e_,c_:Vec3;refl_:RefType);virtual;
+    constructor Create(rad_:real;p_,e_,c_:Vec3;refl_:RefType);
     function intersect(const r:RayRecord):real;override;
   end;
   CamRecord=record
@@ -49,15 +49,9 @@ var
    dirct:Vec3;
 begin
    r1 := 2 * random;
-   if (r1 < 1) then
-      dx := sqrt(r1) - 1
-   else
-      dx := 1 - sqrt(2 - r1);
+   if (r1 < 1) then dx := sqrt(r1) - 1 else dx := 1 - sqrt(2 - r1);
    r2 := 2 * random;
-   if (r2 < 1) then
-      dy := sqrt(r2) - 1
-   else
-      dy := 1 - sqrt(2 - r2);
+   if (r2 < 1) then dy := sqrt(r2) - 1 else dy := 1 - sqrt(2 - r2);
    dirct:= cy* (((sy + 0.5 + dy) / 2 + (h - y - 1)) / h - 0.5)
       +cx* (((sx + 0.5 + dx) / 2 + x) / w - 0.5)
       +d;
@@ -73,10 +67,10 @@ end;
 
 constructor SphereClass.Create(rad_:real;p_,e_,c_:Vec3;refl_:RefType);
 begin
-  inherited create(p_,e_,c_,refl_);
   rad:=rad_;
-//  p:=p_;e:=e_;c:=c_;refl:=refl_;
+  inherited Create(p_,e_,c_,refl_);
 end;
+
 function SphereClass.intersect(const r:RayRecord):real;
 var
   op:Vec3;
@@ -164,7 +158,7 @@ var
 begin
   t:=INF;
   for i:=0 to sph.count-1 do begin
-    d:=DetectorClass(sph[i]).intersect(r);
+    d:=SphereClass(sph[i]).intersect(r);
     if d<t then begin
       t:=d;
       id:=i;
@@ -176,7 +170,7 @@ end;
 function radiance(const r:RayRecord;depth:integer):Vec3;
 var
   id:integer;
-  obj:DetectorClass;
+  obj:SphereClass;
   x,n,f,nl,u,v,w,d:Vec3;
   p,r1,r2,r2s,t:real;
   into:boolean;
@@ -188,7 +182,7 @@ begin
   if intersect(r,t,id)=false then begin
     result:=ZeroVec;exit;
   end;
-  obj:=DetectorClass(sph[id]);
+  obj:=SphereClass(sph[id]);
   x:=r.o+r.d*t; n:=(x-obj.p).norm; f:=obj.c;
   if n.dot(r.d)<0 then nl:=n else nl:=n*-1;
   if (f.x>f.y)and(f.x>f.z) then
@@ -252,15 +246,16 @@ function radiance_ne(r:RayRecord;depth:integer;E:integer):Vec3;
 var
   id,i,tid:integer;
   obj,s:SphereClass;
-  x,n,f,nl,u,v,w,d:Vec3;
-  p,r1,r2,r2s,t,m1,ss,cc:real;
+  x,n,f,nl,d:Vec3;
+  p,t:real;
   into:boolean;
   Ray2,RefRay:RayRecord;
   nc,nt,nnt,ddn,cos2t,q,a,b,c,R0,Re,RP,Tr,TP:real;
   tDir:Vec3;
-  EL,sw,su,sv,l,tw,tu,tv:Vec3;
+  EL,sw,su,sv,l:Vec3;
   cos_a_max,eps1,eps2,eps2s,cos_a,sin_a,phi,omega:real;
   cl,cf:Vec3;
+  uvw:Vec3Matrix;
 begin
 //writeln(' DebugY=',DebugY,' DebugX=',DebugX);
   depth:=0;
@@ -280,8 +275,7 @@ begin
       p:=f.y
     else
       p:=f.z;
-    tw:=obj.e*E;
-    cl:=cl+cf.mult(tw);
+     cl:=cl+cf.mult(obj.e*E);
 
     if (Depth > 5) or (p = 0) then
        if (random < p) then begin
@@ -295,28 +289,8 @@ begin
     cf:=f.mult(cf);
     case obj.refl of
       DIFF:begin
-        r1  := M_2PI * random;
-        r2  := random;
-        r2s := sqrt(r2);
-        w   := nl;
-
-        if (abs(w.x) > 0.1) then begin
-          m1 := 1/sqrt(w.z*w.z+w.x*w.x);
-          u := u.new(w.z*m1, 0, -w.x*m1);
-          v := v.new(w.y*u.z, w.z*u.x-w.x*u.z, -w.y*u.x); //4* vs 6*
-        end
-        else begin
-          m1 := 1/sqrt(w.z*w.z+w.y*w.y);
-          u := u.new(0, -w.z*m1, w.y*m1);
-          v := v.new(w.y*u.z-w.z*u.y, -w.x*u.z, w.x*u.y); //4* vs 6*
-        end;
-        sincos(r1,ss,cc);
-
-        u:= u*( cc * r2s); //4* cos
-        v:= v*(ss * r2s); //4* sin
-        w:= w*( sqrt(1 - r2));  //3* sqrt
-
-        d:=VecAdd3(u, v, w);d:=d.norm;
+        uvw.new(nl);
+        d:=uvw.GetUniformVec;     
         // Loop over any lights
         EL:=ZeroVec;
         tid:=id;
@@ -336,13 +310,9 @@ begin
           if tr>1 then begin
             (*半球の内外=cos_aがマイナスとsin_aが＋、－で場合分け*)
             (*半球内部なら乱反射した寄与全てを取ればよい・・はず*)
-            eps1:=M_2PI*random;eps2:=random;eps2s:=sqrt(eps2);
-            sincos(eps1,ss,cc);
-            tu:=u*(cc*eps2s);tu:=tu+v*(ss*eps2s);tu:=tu+w*sqrt(1-eps2);
-            l:=tu.norm;
-             if intersect(Ray2.new(x,l),t,id) then begin
+              if intersect(Ray2.new(x,d),t,id) then begin
                 if id=i then begin
-                   tr:=l*nl;
+                   tr:=d*nl;
                    EL:=EL+f.mult(s.e*tr);
                 end;
              end;
@@ -360,25 +330,24 @@ begin
                 omega := 2*PI*(1-cos_a_max);
                 tr:=l*nl;
                 if tr<0 then tr:=0;
-                tw:=s.e*tr*omega;tw:=f.mult(tw)*M_1_PI;
-                EL := EL + tw;  // 1/pi for brdf
+//                tw:=s.e*tr*omega;tw:=f.mult(tw)*M_1_PI;
+                EL := EL + f.mult(s.e*tr*omega)*M_1_PI;  // 1/pi for brdf
               end;
             end;
           end;
         end;(*for*)
-        tw:=obj.e*e+EL;
-        cl:= cl+cf.mult(tw );
+        cl:= cl+cf.mult(obj.e*E+EL );
         E:=0;
         r.new(x,d)
       end;(*DIFF*)
       SPEC:begin
         cl:=cl+cf.mult(obj.e*e);
-        E:=1;tv:=n*2*(n*r.d) ;tv:=r.d-tv;
-        r.new(x,tv);
+        E:=1;
+        r.new(x,r.d-n*2*(n*r.d));
       end;(*SPEC*)
       REFR:begin
-        tv:=n*2*(n*r.d) ;tv:=r.d-tv;
-        RefRay.new(x,tv);
+    //    tv:=n*2*(n*r.d) ;tv:=r.d-tv;
+        RefRay.new(x,r.d-n*2*(n*r.d));
         into:= (n*nl>0);
         nc:=1;nt:=1.5; if into then nnt:=nc/nt else nnt:=nt/nc; ddn:=r.d*nl;
         cos2t:=1-nnt*nnt*(1-ddn*ddn);
@@ -476,12 +445,9 @@ begin
           if tr>1 then begin
             (*半球の内外=cos_aがマイナスとsin_aが＋、－で場合分け*)
             (*半球内部なら乱反射した寄与全てを取ればよい・・はず*)
-            eps1:=M_2PI*random;eps2:=random;eps2s:=sqrt(eps2);
-            sincos(eps1,ss,cc);
-            l:=(u*(cc*eps2s)+v*(ss*eps2s)+w*sqrt(1-eps2)).norm;
-            if intersect(Ray2.new(x,l),t,id) then begin
+            if intersect(Ray2.new(x,d),t,id) then begin
                 if id=i then begin
-                   tr:=l*nl;if tr<0 then tr:=0;
+                   tr:=d*nl;if tr<0 then tr:=0;
                    EL:=EL+f.mult(s.e*tr);
                 end;
              end;
@@ -582,7 +548,7 @@ begin
   until c=endofoptions;
   height:=h;
   BMP.new(w,h);
-  InitScene;
+  InitNEScene;
   Randomize;
 
 
@@ -599,7 +565,7 @@ begin
       for sy := 0 to 1 do begin
         for sx := 0 to 1 do begin
           for s := 0 to samps - 1 do begin
-            temp:=radiance(cam.GetRay(x,y,sx,sy), 0);
+            temp:=radiance_ne(cam.GetRay(x,y,sx,sy), 0,1);
             temp:= temp/ samps;
             r:= r+temp;
           end;(*samps*)
