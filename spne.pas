@@ -576,7 +576,7 @@ begin
         end;(*sx*)
       end;(*sy*)
       vColor:=ColToRGB(tColor);
-      BMP.SetPixel(x,height-y,vColor);
+      BMP.SetPixel(x,height-y-1,vColor);
     end;(* for x *)
   end;(*for y*)
   writeln ('The time is : ',TimeToStr(Time));
