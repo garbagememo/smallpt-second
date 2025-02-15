@@ -135,7 +135,8 @@ begin
       exit;
     end;
     obj:=SphereClass(sph[id]);
-    x:=r.o+r.d*t; n:=(x-obj.p).norm; f:=obj.c;
+    x:=r.o+r.d*t;f:=obj.c;
+    n:=obj.GetNormVec(x);
     if n*r.d<0 then nl:=n else nl:=n*-1;
     if (f.x>f.y)and(f.x>f.z) then
       p:=f.x
@@ -168,47 +169,16 @@ begin
             continue;
           end;
           if (s.e.x<=0) and  (s.e.y<=0) and (s.e.z<=0)  then continue; // skip non-lights
-          sw:=s.p-x;
-          tr:=sw*sw;  tr:=s.rad*s.rad/tr;
-          if abs(sw.x)>0.1 then 
-            su:=(su.new(0,1,0)/sw).norm 
-          else 
-            su:=(su.new(1,0,0)/sw).norm;
-          sv:=sw/su;
-          if tr>1 then begin
-            (*半球の内外=cos_aがマイナスとsin_aが＋、－で場合分け*)
-            (*半球内部なら乱反射した寄与全てを取ればよい・・はず*)
-            eps1:=M_2PI*random;eps2:=random;eps2s:=sqrt(eps2);
-            sincos(eps1,ss,cc);
-            l:=(uvw.u*(cc*eps2s)+uvw.v*(ss*eps2s)+uvw.w*sqrt(1-eps2) ).norm;
-            if intersect(Ray2.new(x,l),t,id) then begin
-              if id=i then begin
-                tr:=l*nl;
-                EL:=EL+f.mult(s.e*tr);
-              end;
-            end;
-          end
-          else begin //半球外部の場合;
-            cos_a_max := sqrt(1-tr );
-            eps1 := random; eps2:=random;
-            cos_a := 1-eps1+eps1*cos_a_max;
-            sin_a := sqrt(1-cos_a*cos_a);
-            if (1-2*random)<0 then sin_a:=-sin_a; 
-            phi := M_2PI*eps2;
-             l:=(sw*(cos(phi)*sin_a)+sv*(sin(phi)*sin_a)+sw*cos_a).norm;
-            if (intersect(Ray2.new(x,l), t, id) ) then begin 
-              if id=i then begin  // shadow ray
-                omega := 2*PI*(1-cos_a_max);
-                tr:=l*nl;
-                if tr<0 then tr:=0;
-                tw:=s.e*tr*omega;tw:=f.mult(tw)*M_1_PI;
-                EL := EL + tw;  // 1/pi for brdf
-              end;
+          l:=s.GetLightVec(x,obj);
+          if intersect(Ray2.new(x,l),t,id) then begin
+            if id=i then begin
+              tr:=l*nl;
+              if tr<0 then tr:=0;
+              EL:=EL+f.mult(s.e)*tr*s.Omega;
             end;
           end;
         end;(*for*)
-        tw:=obj.e*e+EL;
-        cl:= cl+cf.mult(tw );
+        cl:= cl+cf.mult(obj.e*E+EL );
         E:=0;
         r.new(x,d)
       end;(*DIFF*)

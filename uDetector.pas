@@ -28,14 +28,14 @@ type
     constructor Create(p_,e_,c_:Vec3;refl_:RefType);virtual;
     function intersect(const r:RayRecord):real;virtual;abstract;
     function GetNormVec(x:Vec3):Vec3;virtual;abstract;
-    function GetLightVec(x:Vec3):Vec3;virtual;abstract;
+    function GetLightVec(x:Vec3;org:DetectorClass):Vec3;virtual;abstract;
    end;
   SphereClass=class(DetectorClass)
     rad:real;       //radius
     constructor Create(rad_:real;p_,e_,c_:Vec3;refl_:RefType);virtual;
     function intersect(const r:RayRecord):real;override;
     function GetNormVec(x:Vec3):Vec3;override;
-    function GetLightVec(x:Vec3):Vec3;override;
+    function GetLightVec(x:Vec3;org:DetectorClass):Vec3;override;
   end;
 
 var
@@ -154,17 +154,20 @@ begin
   result:=(x-p).norm;
 end;
 
-function SphereClass.GetLightVec(x:Vec3):Vec3;
+function SphereClass.GetLightVec(x:Vec3;org:DetectorClass):Vec3;
 var
   uvw:Vec3Matrix;
   cos_a_max,eps1,eps2,cos_a,sin_a,phi:real;
+  nl:Vec3;
 begin
-  result:=uvw.GetUniformVec((x-p).norm);
   if (x-p).len<rad then begin
+    nl:=org.GetNormVec(x);
+    result:=uvw.GetUniformVec(nl);
     Omega:=1;
     exit;//result:=uvw.getNormVec;
   end
   else begin
+    uvw.GetUniformVec((p-x).norm);
     cos_a_max := sqrt(1 - rad * rad / (x - p).dot(x - p));
     eps1 := random; eps2:=random;
     cos_a := 1-eps1+eps1*cos_a_max;
