@@ -1,4 +1,4 @@
-unit uVect;
+﻿unit uVect;
 {$MODE objfpc}{$H+}
 {$INLINE ON}
 {$modeswitch advancedrecords}
@@ -8,32 +8,31 @@ interface
 uses
     sysutils,uBMP,math;
 type
-  RefType=(DIFF,SPEC,REFR);// material types, used in radiance()
+    RefType=(DIFF,SPEC,REFR);// material types, used in radiance()
 {
 	DIFFUSE,    // 完全拡散面。いわゆるLambertian面。
 	SPECULAR,   // 理想的な鏡面。
 	REFRACTION, // 理想的なガラス的物質。
 }
-  Vec3=record
-    x,y,z:real;
-    function new(x_,y_,z_:real):Vec3;
-    function Norm:Vec3;inline;
-    function len:real;inline;
-    function Dot(const V2 :Vec3):real;inline;//内積
-    function Cross(const V2 :Vec3):Vec3;inline;//外積
-    function Mult(const V2:Vec3):Vec3;inline;
-    function Neg:Vec3;
-  end;
-  RayRecord=record
-    o, d:Vec3;
-    function new(o_,d_:Vec3):RayRecord;
-  end;
-
-  Vec3Matrix=record
-    u,v,w:Vec3;
-    procedure New(r:Vec3);
-    function GetUniformVec:Vec3;
-  end;
+    Vec3=record
+        x,y,z:real;
+        function new(x_,y_,z_:real):Vec3;
+        function Norm:Vec3;inline;
+        function len:real;inline;
+        function sqr:real;inline;
+        function Dot(const V2 :Vec3):real;inline;//内積
+        function Cross(const V2 :Vec3):Vec3;inline;//外積
+        function Mult(const V2:Vec3):Vec3;inline;
+        function Neg:Vec3;
+    end;
+    Vec3Matrix=record
+      u,v,w:Vec3;
+      function GetUniformVec(r:Vec3):Vec3;
+    end;
+    RayRecord=record
+       o, d:Vec3;
+       function new(o_,d_:Vec3):RayRecord;
+      end;
 
   InterRecord=record
      isHit:boolean;
@@ -80,6 +79,10 @@ function Vec3.len:real;inline;
 begin
    result:=sqrt(x*x+y*y+z*z);
 end;
+function Vec3.sqr:real;inline;
+begin
+  result:=x*x+y*y+z*z;
+end;
 
 function Vec3.Dot(const V2 :Vec3):real;inline;//内積
 begin
@@ -106,21 +109,18 @@ begin
     result.y:=-y;
     result.z:=-z;
 end;
-procedure Vec3Matrix.new(r:Vec3);
-begin
-  w:=r;
-  if abs(w.x)>0.1 then 
-    u:=(u.new(0,1,0)/w).norm 
-  else 
-    u:=( u.new(1,0,0)/w).norm;
-  v:= w/u;
-end;
-function Vec3Matrix.GetUniformVec:Vec3;
+function Vec3Matrix.GetUniformVec(r:Vec3):Vec3;
 var
   r1,r2,r2s:real;
 begin
   r1:=2*PI*random;r2:=random;r2s:=sqrt(r2);
-  result:= (u*cos(r1)*r2s + v*sin(r1)*r2s + w*sqrt(1-r2)).norm;
+  w:=r;
+  if abs(w.x)>0.1 then
+    u:=(u.new(0,1,0)/w).norm 
+  else 
+    u:=(u.new(1,0,0)/w ).norm;
+  v:=w/u;
+  result := (u*cos(r1)*r2s + v*sin(r1)*r2s + w*sqrt(1-r2)).norm;
 end;
 
 function RayRecord.new(o_,d_:Vec3):RayRecord;
