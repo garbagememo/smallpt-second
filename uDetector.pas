@@ -161,8 +161,8 @@ var
   nl:Vec3;
 begin
   if (x-p).len<rad then begin
-    nl:=org.GetNormVec(x);
-    result:=uvw.GetUniformVec(nl);
+    nl:=org.GetNormVec(x);//メインですでに実行しているので削除したいが、そうすると見通しが悪くなるので・・・
+    result:=uvw.GetUniformVec(nl);//こちらもメインで既に実行している・・・
     Omega:=1;
     exit;//result:=uvw.getNormVec;
   end

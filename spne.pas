@@ -115,13 +115,11 @@ var
   id,i,tid:integer;
   obj,s:SphereClass;
   x,n,f,nl,d:Vec3;
-  p,r1,r2,r2s,t,m1,ss,cc:real;
+  p,t:real;
   into:boolean;
   Ray2,RefRay:RayRecord;
   nc,nt,nnt,ddn,cos2t,q,a,b,c,R0,Re,RP,Tr,TP:real;
-  tDir:Vec3;
-  EL,sw,su,sv,l,tw,tu,tv:Vec3;
-  cos_a_max,eps1,eps2,eps2s,cos_a,sin_a,phi,omega:real;
+  EL,l,tDir:Vec3;
   cl,cf:Vec3;
   uvw:Vec3Matrix;
 begin
@@ -144,8 +142,7 @@ begin
       p:=f.y
     else
       p:=f.z;
-    tw:=obj.e*E;
-    cl:=cl+cf.mult(tw);
+     cl:=cl+cf.mult(obj.e*E);
 
     if (Depth > 5) or (p = 0) then
        if (random < p) then begin
@@ -184,12 +181,12 @@ begin
       end;(*DIFF*)
       SPEC:begin
         cl:=cl+cf.mult(obj.e*e);
-        E:=1;tv:=n*2*(n*r.d) ;tv:=r.d-tv;
-        r.new(x,tv);
+        E:=1;//tv:=n*2*(n*r.d) ;tv:=r.d-tv;
+        r.new(x,r.d-n*2*(n*r.d) );
       end;(*SPEC*)
       REFR:begin
-        tv:=n*2*(n*r.d) ;tv:=r.d-tv;
-        RefRay.new(x,tv);
+        //tv:=n*2*(n*r.d) ;tv:=r.d-tv;
+        RefRay.new(x,r.d-n*2*(n*r.d));
         into:= (n*nl>0);
         nc:=1;nt:=1.5; if into then nnt:=nc/nt else nnt:=nt/nc; ddn:=r.d*nl;
         cos2t:=1-nnt*nnt*(1-ddn*ddn);
