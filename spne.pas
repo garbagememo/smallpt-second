@@ -113,7 +113,7 @@ end;
 function radiance_ne(r:RayRecord;depth:integer;E:integer):Vec3;
 var
   id,i,tid:integer;
-  obj,s:SphereClass;
+  obj,s:DetectorClass;
   x,n,f,nl,d:Vec3;
   p,t:real;
   into:boolean;
@@ -132,7 +132,7 @@ begin
       result:=cl;
       exit;
     end;
-    obj:=SphereClass(sph[id]);
+    obj:=DetectorClass(sph[id]);
     x:=r.o+r.d*t;f:=obj.c;
     n:=obj.GetNormVec(x);
     if n*r.d<0 then nl:=n else nl:=n*-1;
@@ -161,7 +161,7 @@ begin
         EL:=ZeroVec;
         tid:=id;
         for i:=0 to sph.count-1 do begin
-          s:=SphereClass(sph[i]);
+          s:=DetectorClass(sph[i]);
           if (i=tid) then begin
             continue;
           end;
@@ -230,7 +230,7 @@ var
   ArgInt:integer;
   FN,ArgFN:string;
   c:char;
-
+  StartDateTime:TDateTime;
 begin
   FN:='temp.bmp';
   w:=1024 ;h:=768;  samps := 16;
@@ -242,7 +242,7 @@ begin
       'm' : begin
         ArgInt:=StrToInt(OptArg);
         modelid:=ArgInt;
-        if modelid>5 then modelid:=0;
+        if modelid>6 then modelid:=0;
         writeln('model id =',ModelID);
       end;
       'o' : begin
@@ -280,6 +280,7 @@ begin
     3:ForestScene;
     4:WadaScene;
     5:RandomScene;
+    6:RectLightScene;
   end;      
   
 
@@ -287,7 +288,7 @@ begin
            camDirection.new(0, -0.042612, -1).norm,
            w,h);
   writeln ('The time is : ',TimeToStr(Time));
-
+  StartDateTime:=Time;
   for y := 0 to h-1 do begin
     if y mod 10 =0 then writeln('y=',y);
     for x := 0 to w - 1 do begin
@@ -309,6 +310,7 @@ begin
       BMP.SetPixel(x,height-y-1,vColor);
     end;(* for x *)
   end;(*for y*)
-  writeln ('The time is : ',TimeToStr(Time));
+  writeln('The time is : ',TimeToStr(Time));
+  writeln('elapsed time : ',TimeToStr(Time-StartDateTime) );
   BMP.WriteBMPFile(FN);
 end.

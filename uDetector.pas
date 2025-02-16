@@ -20,6 +20,8 @@ type
       function MargeBoundBox(box1:AABBRecord):AABBRecord;
    end;
 
+  RectAxisType=(XY,YZ,XZ);(*平面がどっち向いているか*)
+
   DetectorClass=Class
     p,e,c:Vec3;// position. emission,color
     refl:RefType;
@@ -37,6 +39,16 @@ type
     function GetNormVec(x:Vec3):Vec3;override;
     function GetLightVec(x:Vec3;org:DetectorClass):Vec3;override;
   end;
+  RectClass=class(DetectorClass)
+    H1,H2,V1,V2,w,h,area:Real;
+    RA:RectAxisType;
+    nl,hv,wv:Vec3;
+    constructor Create(RA_:RectAxisType;H1_,H2_,V1_,V2_:real;p_,e_,c_:Vec3;refl_:RefType);
+    function intersect(const r:RayRecord):real;override;
+    function GetNormVec(x:Vec3):Vec3;override;
+    function GetLightVec(x:Vec3;org:DetectorClass):Vec3;override;
+  end;
+
 
 var
    sph:TList;
@@ -47,6 +59,7 @@ procedure SkyScene;
 procedure ForestScene;
 procedure WadaScene;
 procedure RandomScene;
+procedure RectLightScene;
   
 function intersect(const r:RayRecord;var t:real; var id:integer):boolean;
 
@@ -179,6 +192,78 @@ begin
   end;
 end;
 
+constructor RectClass.Create(RA_:RectAxisType;H1_,H2_,V1_,V2_:real;p_,e_,c_:Vec3;refl_:RefType);
+begin
+  RA:=RA_;H1:=H1_;H2:=H2_;V1:=V1_;V2:=V2_;h:=H2-H1;w:=V2-V1;
+  case RA of
+    XY:begin p_.x:=H1; p_.y:=V1; hv.new(H2-H1,0,0);wv.new(0,V2-V1,0);end;
+    XZ:begin p_.x:=H1; p_.z:=V1; hv.new(H2-H1,0,0);wv.new(0,0,V2-V1);end;
+    YZ:begin p_.y:=H1; p_.z:=V1; hv.new(0,H2-H1,0);wv.new(0,0,v2-v1);end;
+  end;
+  nl:=(hv/wv).norm*-1;
+  area:=w*h;
+//  writeln('Area=',Area:5:0,' w:h=',w:4:0,':',h:4:0);
+  inherited create(p_,e_,c_,refl_);
+//  writeln('nl=');VecWriteln(nl);
+end;
+
+
+function RectClass.intersect(const r:RayRecord):real;
+var
+  t:real;
+  pt:Vec3;
+begin
+  (**光線と平行に近い場合の処理が必要だが・・・**)
+  case RA of
+    xy:begin
+         result:=INF;
+         if abs(r.d.z)<eps then exit;
+         t:=(p.z-r.o.z)/r.d.z;
+         if t<eps then exit;//result is INF
+         pt:=r.o+r.d*t;
+         if (pt.x<H2) and (pt.x>H1) and (pt.y<V2)and (pt.y>V1) then result:=t;
+       end;(*xy*)
+    xz:begin
+         result:=INF;
+         if abs(r.d.y)<eps then exit;
+         t:=(p.y-r.o.y)/r.d.y;
+         if t<eps then exit;//result is INF
+         pt:=r.o+r.d*t;
+         if (pt.x<H2) and (pt.x>H1) and (pt.z<V2)and (pt.z>V1) then result:=t;
+       end;(*xz*)
+    yz:begin
+         result:=INF;
+         if abs(r.d.y)<eps then exit;
+         t:=(p.x-r.o.x)/r.d.x;
+         if t<eps then exit;//result is INF
+         pt:=r.o+r.d*t;
+         if (pt.y<H2) and (pt.y>H1) and (pt.z<V2)and (pt.z>V1) then result:=t;
+       end;(*yz*)
+  end;(*case*)
+end;
+
+function RectClass.GetNormVec(x:Vec3):Vec3;
+begin
+  result:=nl;
+end;
+
+function RectClass.GetLightVec(x:Vec3;org:DetectorClass):Vec3;
+var
+  r:Vec3;
+  dist,eps1,eps2:real;
+begin
+  //平面上の点を求めて、視線からのVecを求める
+  //Omegaは半球状の視野角を求めるので・・・・Area/r^2 /2pi
+  eps1:=random;eps2:=random;
+  case RA of
+    XY:begin r.x:=p.x+h*eps1;r.y:=p.y+w*eps2; r.z:=p.z end;
+    XZ:begin r.x:=p.x+h*eps1;r.z:=p.z+w*eps2; r.y:=p.y end;
+    YZ:begin r.y:=p.y+h*eps1;r.z:=p.z+w*eps2; r.x:=p.x end;
+  end;
+  result:=(r-x).norm;
+  dist:=(x-r).sqr;
+  Omega:=Area/(2*pi*dist);
+end;
 
 function intersect(const r:RayRecord;var t:real; var id:integer):boolean;
 var 
@@ -227,7 +312,6 @@ begin
   sph.add( SphereClass.Create(16.5,p.new(27,16.5,47),        ZeroVec,c.new(1,1,1)*0.999,   SPEC) );//Mirror
   sph.add( SphereClass.Create(16.5,p.new(73,16.5,88),        ZeroVec,c.new(1,1,1)*0.999,   REFR) );//Glass
   sph.add( SphereClass.Create( 1.5,p.new(50,81.6-16.5,81.6), e.new(4,4,4)*100,   ZeroVec,  DIFF) );//Ligth
-
 end;
 
 procedure RandomScene;
@@ -340,6 +424,22 @@ begin
   sph.add(SphereClass.Create(R, p.new(50,40.8,62)+e.new(0,-1,0)*D,           ZeroVec, c.new(0.3,0.3,1)*0.999, SPEC)); //blue
   sph.add(SphereClass.Create(R, p.new(50,40.8,62)+e.new(0,0,-1)*D,           ZeroVec, c.new(0.53,0.53,0.53)*0.999, SPEC)); //back
   sph.add(SphereClass.Create(R, p.new(50,40.8,62)+e.new(0,0,1)*D,            ZeroVec, c.new(1,1,1)*0.999, REFR)); //front
+end;
+
+procedure RectLightScene;
+var
+   p,c,e:Vec3;
+begin
+  sph:=TList.Create;
+  sph.add( SphereClass.Create(1e5, p.new( 1e5+1,40.8,81.6),  ZeroVec,c.new(0.75,0.25,0.25),DIFF) );//Left
+  sph.add( SphereClass.Create(1e5, p.new(-1e5+99,40.8,81.6), ZeroVec,c.new(0.25,0.25,0.75),DIFF) );//Right
+  sph.add( SphereClass.Create(1e5, p.new(50,40.8, 1e5),      ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Back
+  sph.add( SphereClass.Create(1e5, p.new(50,40.8,-1e5+170+eps),ZeroVec,ZeroVec            ,DIFF) );//Front
+  sph.add( SphereClass.Create(1e5, p.new(50, 1e5, 81.6),     ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Bottomm
+  sph.add( SphereClass.Create(1e5, p.new(50,-1e5+81.6,81.6), ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Top
+  sph.add( SphereClass.Create(16.5,p.new(27,16.5,47),        ZeroVec,c.new(1,1,1)*0.999,   SPEC) );//Mirror
+  sph.add( SphereClass.Create(16.5,p.new(73,16.5,88),        ZeroVec,c.new(1,1,1)*0.999,   REFR) );//Glass
+  sph.add( RectClass.Create(XZ,40,60,70,90,p.new(50,70,80),  e.new(4,4,4),   ZeroVec,  DIFF)  );//Ligth
 end;
 
 
