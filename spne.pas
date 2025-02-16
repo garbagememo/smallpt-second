@@ -6,7 +6,6 @@
 uses SysUtils,Classes,uVect,uDetector,uBMP,Math,getopts;
 
 type 
-
   CamRecord=record
     o,d:Vec3;
     PlaneDist:real;
@@ -110,7 +109,8 @@ begin
   end;(*CASE*)
 end;
 
-function radiance_ne(r:RayRecord;depth:integer;E:integer):Vec3;
+
+function radiance_ne_rev(r:RayRecord;depth:integer;E:integer):Vec3;
 var
   id,i,tid:integer;
   obj,s:DetectorClass;
@@ -119,105 +119,86 @@ var
   into:boolean;
   Ray2,RefRay:RayRecord;
   nc,nt,nnt,ddn,cos2t,q,a,b,c,R0,Re,RP,Tr,TP:real;
-  EL,l,tDir:Vec3;
-  cl,cf:Vec3;
+  tDir:Vec3;
+  EL,l:Vec3;
+
   uvw:Vec3Matrix;
 begin
-//writeln(' DebugY=',DebugY,' DebugX=',DebugX);
-  depth:=0;
-  id:=0;cl:=ZeroVec;cf:=cf.new(1,1,1);E:=1;
-  while (TRUE) do begin
-    Inc(depth);
-    if intersect(r,t,id)=false then begin
-      result:=cl;
+  id:=0;depth:=depth+1;
+  if intersect(r,t,id)=false then begin
+    result:=ZeroVec;exit;
+  end;
+  obj:=DetectorClass(sph[id]);
+  x:=r.o+r.d*t;  f:=obj.c;
+  n:=obj.GetNormVec(x);
+  if n.dot(r.d)<0 then nl:=n else nl:=n*-1;
+  if (f.x>f.y)and(f.x>f.z) then
+    p:=f.x
+  else if f.y>f.z then 
+    p:=f.y
+  else
+    p:=f.z;
+   if (depth>5) then begin
+    if random<p then 
+      f:=f/p 
+    else begin
+      result:=obj.e;
       exit;
     end;
-    obj:=DetectorClass(sph[id]);
-    x:=r.o+r.d*t;f:=obj.c;
-    n:=obj.GetNormVec(x);
-    if n*r.d<0 then nl:=n else nl:=n*-1;
-    if (f.x>f.y)and(f.x>f.z) then
-      p:=f.x
-    else if f.y>f.z then
-      p:=f.y
-    else
-      p:=f.z;
-     cl:=cl+cf.mult(obj.e*E);
-
-    if (Depth > 5) or (p = 0) then
-       if (random < p) then begin
-         f:= f / p;
-       end
-       else begin
-         Result := cl;
-         exit;
-       end;
-
-    cf:=f.mult(cf);
-    case obj.refl of
-      DIFF:begin
-        d:=uvw.GetUniformVec(nl);
+  end;
+  case obj.refl of
+    DIFF:begin
+      d:=uvw.GetUniformVec(nl);
         // Loop over any lights
-        EL:=ZeroVec;
-        tid:=id;
-        for i:=0 to sph.count-1 do begin
-          s:=DetectorClass(sph[i]);
-          if (i=tid) then begin
-            continue;
-          end;
-          if (s.e.x<=0) and  (s.e.y<=0) and (s.e.z<=0)  then continue; // skip non-lights
-          l:=s.GetLightVec(x,obj);
-          if intersect(Ray2.new(x,l),t,id) then begin
-            if id=i then begin
-              tr:=l*nl;
-              if tr<0 then tr:=0;
-              EL:=EL+f.mult(s.e)*tr*s.Omega;
-            end;
-          end;
-        end;(*for*)
-        cl:= cl+cf.mult(obj.e*E+EL );
-        E:=0;
-        r.new(x,d)
-      end;(*DIFF*)
-      SPEC:begin
-        cl:=cl+cf.mult(obj.e*e);
-        E:=1;//tv:=n*2*(n*r.d) ;tv:=r.d-tv;
-        r.new(x,r.d-n*2*(n*r.d) );
-      end;(*SPEC*)
-      REFR:begin
-        //tv:=n*2*(n*r.d) ;tv:=r.d-tv;
-        RefRay.new(x,r.d-n*2*(n*r.d));
-        into:= (n*nl>0);
-        nc:=1;nt:=1.5; if into then nnt:=nc/nt else nnt:=nt/nc; ddn:=r.d*nl;
-        cos2t:=1-nnt*nnt*(1-ddn*ddn);
-        if cos2t<0 then begin   // Total internal reflection
-          cl:=cl+cf.mult(obj.e*E);
-          E:=1;
-          r:=RefRay;
+      EL:=ZeroVec;
+      tid:=id;
+      for i:=0 to sph.count-1 do begin
+        s:=DetectorClass(sph[i]);
+        if (i=tid) then begin
           continue;
         end;
-        if into then q:=1 else q:=-1;
-        tdir := (r.d*nnt - n*(q*(ddn*nnt+sqrt(cos2t)))).norm;
-        if into then Q:=-ddn else Q:=tdir*n;
-        a:=nt-nc; b:=nt+nc; R0:=a*a/(b*b); c := 1-Q;
-        Re:=R0+(1-R0)*c*c*c*c*c;Tr:=1-Re;P:=0.25+0.5*Re;RP:=Re/P;TP:=Tr/(1-P);
-        if random<p then begin// 反射
-          cf:=cf*RP;
-          cl:=cl+cf.mult(obj.e*E);
-          E:=1;
-          r:=RefRay;
-        end
-        else begin//屈折
-          cf:=cf*TP;
-          cl:=cl+cf.Mult(obj.e*E);
-          E:=1;
-          r.new(x,tdir);
-        end
-      end;(*REFR*)
-    end;(*CASE*)
-  end;(*WHILE LOOP *)
+        if (s.e.x<=0) and  (s.e.y<=0) and (s.e.z<=0)  then continue; // skip non-lights
+        l:=s.GetLightVec(x,obj);
+        
+        if intersect(Ray2.new(x,l),t,id) then begin
+          if id=i then begin
+            tr:=l*nl;
+            if tr<0 then tr:=0;
+            EL:=EL+f.mult(s.e)*tr*s.Omega;
+          end;
+        end;
+      end;(*for*)
+      result:=obj.e*E+EL+f.Mult(radiance_ne_rev(ray2.new(x,d),depth,0) );
+    end;(*DIFF*)
+    SPEC:begin
+      result:=obj.e+f.mult(radiance_ne_rev(ray2.new(x,r.d-n*2*(n*r.d) ),depth,1));
+    end;(*SPEC*)
+    REFR:begin
+      RefRay.new(x,r.d-n*2*(n*r.d) );
+      into:= (n*nl>0);
+      nc:=1;nt:=1.5; if into then nnt:=nc/nt else nnt:=nt/nc; ddn:=r.d*nl; 
+      cos2t:=1-nnt*nnt*(1-ddn*ddn);
+      if cos2t<0 then begin   // Total internal reflection
+        result:=obj.e + f.mult(radiance_ne_rev(RefRay,depth,1));
+        exit;
+      end;
+      if into then q:=1 else q:=-1;
+      tdir := (r.d*nnt - n*(q*(ddn*nnt+sqrt(cos2t)))).norm;
+      if into then Q:=-ddn else Q:=tdir*n;
+      a:=nt-nc; b:=nt+nc; R0:=a*a/(b*b); c := 1-Q;
+      Re:=R0+(1-R0)*c*c*c*c*c;Tr:=1-Re;P:=0.25+0.5*Re;RP:=Re/P;TP:=Tr/(1-P);
+      if depth>2 then begin
+        if random<p then // 反射
+          result:=obj.e+f.mult(radiance_ne_rev(RefRay,depth,1)*RP)
+        else //屈折
+          result:=obj.e+f.mult(radiance_ne_rev(ray2.new(x,tdir),depth,1)*TP);
+      end
+      else begin// 屈折と反射の両方を追跡
+        result:=obj.e+f.mult(radiance_ne_rev(RefRay,depth,1)*Re+radiance_ne_rev(ray2.new(x,tdir),depth,1)*Tr);
+      end;
+    end;(*REFR*)
+  end;(*CASE*)
 end;
-
 
 var
   x,y,sx,sy,s: integer;
@@ -242,7 +223,7 @@ begin
       'm' : begin
         ArgInt:=StrToInt(OptArg);
         modelid:=ArgInt;
-        if modelid>6 then modelid:=0;
+        if modelid>7 then modelid:=0;
         writeln('model id =',ModelID);
       end;
       'o' : begin
@@ -281,12 +262,15 @@ begin
     4:WadaScene;
     5:RandomScene;
     6:RectLightScene;
+    7:testSkyScene;
   end;      
   
 
   cam.new( camPosition.new(50, 52, 295.6),
            camDirection.new(0, -0.042612, -1).norm,
            w,h);
+  //debug
+//  cam.o.x:=cam.o.x+50;
   writeln ('The time is : ',TimeToStr(Time));
   StartDateTime:=Time;
   for y := 0 to h-1 do begin
@@ -297,7 +281,7 @@ begin
       for sy := 0 to 1 do begin
         for sx := 0 to 1 do begin
           for s := 0 to samps - 1 do begin
-            temp:=radiance_ne(cam.GetRay(x,y,sx,sy), 0,1);
+            temp:=radiance_ne_rev(cam.GetRay(x,y,sx,sy), 0,1);
             temp:= temp/ samps;
             r:= r+temp;
           end;(*samps*)

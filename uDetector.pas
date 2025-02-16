@@ -60,6 +60,7 @@ procedure ForestScene;
 procedure WadaScene;
 procedure RandomScene;
 procedure RectLightScene;
+procedure testSkyScene;
   
 function intersect(const r:RayRecord;var t:real; var id:integer):boolean;
 
@@ -187,7 +188,7 @@ begin
     sin_a := sqrt(1-cos_a*cos_a);
     if (1-2*random)<0 then sin_a:=-sin_a; 
     phi := M_2PI*eps2;
-    result:=(uvw.w*(cos(phi)*sin_a)+uvw.v*(sin(phi)*sin_a)+uvw.w*cos_a).norm;
+    result:=(uvw.u*(cos(phi)*sin_a)+uvw.v*(sin(phi)*sin_a)+uvw.w*cos_a).norm;
     Omega:=2*PI*(1-cos_a_max)*M_1_PI;
   end;
 end;
@@ -440,6 +441,26 @@ begin
   sph.add( SphereClass.Create(16.5,p.new(27,16.5,47),        ZeroVec,c.new(1,1,1)*0.999,   SPEC) );//Mirror
   sph.add( SphereClass.Create(16.5,p.new(73,16.5,88),        ZeroVec,c.new(1,1,1)*0.999,   REFR) );//Glass
   sph.add( RectClass.Create(XZ,40,60,70,90,p.new(50,70,80),  e.new(4,4,4),   ZeroVec,  DIFF)  );//Ligth
+end;
+
+procedure testSkyScene;
+var
+   Cen,p,e,c:Vec3;
+begin
+  sph:=TList.Create;
+  Cen.new(50,40.8,-860);
+
+//  sph.add(SphereClass.Create(1600,      p.new(1,0,2)*3000,   e.new(1,0.9,0.8)*1.2e1*1.56*2,  ZeroVec, DIFF)); // sun
+  sph.add(SphereClass.Create(1560,      p.new(1,0,2)*3500,   e.new(1,0.5,0.05)*4.8e1*1.56*2, ZeroVec,  DIFF) ); // horizon sun2
+  sph.add(SphereClass.Create(10000, Cen+p.new(0,0,-200),     e.new(0.00063842, 0.02001478, 0.28923243)*6e-2*8, c.new(0.7,0.7,1)*0.25,  DIFF)); // sky
+
+  sph.add(SphereClass.Create(100000,    p.new(50, -100000, 0),ZeroVec,c.new(0.3,0.3,0.3),DIFF)); // grnd
+//  sph.add(SphereClass.Create(110000,    p.new(50, -110048.5, 0),e.new(0.9,0.5,0.05)*4,ZeroVec,DIFF));// horizon brightener
+//  sph.add(SphereClass.Create(4e4,       p.new(50, -4e4-30, -3000),ZeroVec,c.new(0.2,0.2,0.2),DIFF));// mountains
+
+//  sph.add(SphereClass.Create(26.5,p.new(22,26.5,42),ZeroVec,c.new(1,1,1)*0.596, SPEC)); // white Mirr
+//  sph.add(SphereClass.Create(13,p.new(75,13,82),ZeroVec,c.new(0.96,0.96,0.96)*0.96, REFR));// Glas
+//  sph.add(SphereClass.Create(22,p.new(87,22,24),ZeroVec,c.new(0.6,0.6,0.6)*0.696, REFR));    // Glas2
 end;
 
 

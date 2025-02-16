@@ -117,8 +117,10 @@ begin
   w:=r;
   if abs(w.x)>0.1 then
     u:=(u.new(0,1,0)/w).norm 
-  else 
-    u:=(u.new(1,0,0)/w ).norm;
+  else if abs(w.y)>0.1 then 
+    u:=(u.new(1,0,0)/w ).norm
+  else
+    u:=(u.new(0,0,1)/w).norm;
   v:=w/u;
   result := (u*cos(r1)*r2s + v*sin(r1)*r2s + w*sqrt(1-r2)).norm;
 end;
