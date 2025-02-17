@@ -289,8 +289,7 @@ begin
     cf:=f.mult(cf);
     case obj.refl of
       DIFF:begin
-        uvw.new(nl);
-        d:=uvw.GetUniformVec;     
+        d:=uvw.GetUniformVec(nl);     
         // Loop over any lights
         EL:=ZeroVec;
         tid:=id;
