@@ -113,14 +113,15 @@ function Vec3Matrix.GetUniformVec(r:Vec3):Vec3;
 var
   r1,r2,r2s:real;
 begin
+  //rはlength=1である事を仮定している
   r1:=2*PI*random;r2:=random;r2s:=sqrt(r2);
   w:=r;
   if abs(w.x)>0.1 then
-    u:=(u.new(0,1,0)/w).norm 
+    u:=(u.new(0,1,0)/w).norm
   else if abs(w.y)>0.1 then 
     u:=(u.new(1,0,0)/w ).norm
   else
-    u:=(u.new(0,0,1)/w).norm;
+    u:=(u.new(0,0,1)/w).norm;//この行は本来不要だが・・・
   v:=w/u;
   result := (u*cos(r1)*r2s + v*sin(r1)*r2s + w*sqrt(1-r2)).norm;
 end;

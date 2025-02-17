@@ -262,7 +262,7 @@ begin
     4:WadaScene;
     5:RandomScene;
     6:RectLightScene;
-    7:testSkyScene;
+    7:testScene;
   end;      
   
 
