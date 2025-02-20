@@ -91,6 +91,7 @@ begin
   end;
 end;
 
+
 function BVHnodeClass.intersect(r:RayRecord):InterRecord;
 var
    RIR,LIR:InterRecord;
@@ -100,12 +101,12 @@ begin
   result.t:=INF;
   result.id:=0;
   if leaf<>Nil_Leaf then begin
-     result.t:=DetectorClass(sph[leaf]).intersect(r);
-     if result.t<INF then begin
-        result.id:=Leaf;
-        result.isHit:=true;
-     end;
-     exit;
+    result.t:=DetectorClass(sph[leaf]).intersect(r);
+    if result.t<INF then begin
+      result.id:=Leaf;
+      result.isHit:=true;
+    end;
+    exit;
   end;
   
   if root.Hit(r,EPS,INF) then begin
@@ -139,16 +140,17 @@ begin
   j:=-1;k:=-1;
   for i:=0 to sph.count-1 do begin
     s:=DetectorClass(sph[i]);
-    if s is SphereClass then begin
-      if (SphereClass(s).rad/(s.p-o).len >0.5 ) and (SphereClass(s).rad>1e3) then begin
+    if (s is SphereClass)
+       and (SphereClass(s).rad/(s.p-o).len >0.5 )
+       and (SphereClass(s).rad>1e3) then begin
         j:=j+1;NoBVHary[j]:=i;
       end 
       else begin
         k:=k+1;ary[k]:=i;
       end;
-    end;
-  end;
+   end;
   SetLength(NoBVHary,j+1);SetLength(ary,k+1);
+  for j:=0 to Length(ary)-1 do writeln(' ary[',j,']=',ary[j]);
   BVH:=BVHNodeClass.Create(ary,sph);
 end;
 

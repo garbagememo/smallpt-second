@@ -198,18 +198,18 @@ begin
   case RA of
     XY:begin
          p_.x:=H1; p_.y:=V1; hv.new(H2-H1,0,0);wv.new(0,V2-V1,0);
-         BoundBox.new(bMin.new(min(H1,H2),min(V1,V2),p_.z-EPS),
-                      bMax.new(Max(H1,H2),Max(V1,V2),p_.z+EPS) );
+         BoundBox.new(bMin.new(min(H1,H2),min(V1,V2),p_.z-1),
+                      bMax.new(Max(H1,H2),Max(V1,V2),p_.z+1) );
        end;
     XZ:begin
          p_.x:=H1; p_.z:=V1; hv.new(H2-H1,0,0);wv.new(0,0,V2-V1);
-         BoundBox.new(bMin.new(min(H1,H2),p_.y-EPS,min(V1,V2)),
-                      bMax.new(Max(H1,H2),p_.y+EPS,Max(V1,V2)) );
+         BoundBox.new(bMin.new(min(H1,H2),p_.y-1,min(V1,V2)),
+                      bMax.new(Max(H1,H2),p_.y+1,Max(V1,V2)) );
        end;
     YZ:begin
          p_.y:=H1; p_.z:=V1; hv.new(0,H2-H1,0);wv.new(0,0,v2-v1);
-         BoundBox.new(bMin.new(p_.x-EPS,min(H1,H2),min(V1,V2)),
-                      bMax.new(p_.x+EPS,Max(H1,H2),Max(V1,V2)) );
+         BoundBox.new(bMin.new(p_.x-1,min(H1,H2),min(V1,V2)),
+                      bMax.new(p_.x+1,Max(H1,H2),Max(V1,V2)) );
        end;
   end;
   nl:=(hv/wv).norm*-1;

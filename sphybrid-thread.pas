@@ -161,7 +161,7 @@ begin
         for sx := 0 to 1 do begin
           r:=ZeroVec;
           for s := 0 to cam.samps - 1 do begin
-            r:= r+radiance_ne(cam.GetRay(x,y,sx,sy), 0,1)/ cam.samps;
+            r:= r+radiance(cam.GetRay(x,y,sx,sy), 0)/ cam.samps;
           end;(*samps*)
           tColor:=tColor+ ClampVector(r)* 0.25;
         end;(*sx*)
@@ -251,12 +251,9 @@ begin
   Randomize;
   cam.new(camPosition.new(50, 52, 295.6),camDirection.new(0, -0.042612, -1).norm,w,h,samps );
   case modelnum of
-     5:begin
-          RandomScene;
-          cam.o.new(55, 40, 295.6);
-          cam.d.new(0, -0.12, -1.0).norm;
-          cam.PlaneDist:=70;
-       end;
+     7:testScene;
+     6:RectLightScene;
+     5:RandomScene;
      4:WadaScene;
      3:ForestScene;
      2:SkyScene;
