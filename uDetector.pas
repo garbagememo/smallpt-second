@@ -168,10 +168,11 @@ end;
 function SphereClass.GetLightVec(x:Vec3;org:DetectorClass):SurfaceInfo;
 var
   uvw:Vec3Matrix;
-  cos_a_max,eps1,eps2,cos_a,sin_a,phi:real;
+  tan_a,cos_a_max,eps1,eps2,cos_a,sin_a,phi:real;
   nl:Vec3;
 begin
-  if (x-p).len<rad then begin
+  tan_a:=(rad*rad)/(x-p).sqr;
+  if tan_a>=1 then begin
     nl:=org.GetNormVec(x);//メインですでに実行しているので削除したいが、そうすると見通しが悪くなるので・・・
     result.l:=uvw.GetUniformVec(nl);//こちらもメインで既に実行している・・・
     result.Omega:=1;
@@ -179,7 +180,7 @@ begin
   end
   else begin
     uvw.GetUniformVec((p-x).norm);
-    cos_a_max := sqrt(1 - rad * rad / (x - p).dot(x - p));
+    cos_a_max := sqrt(1 - tan_a);
     eps1 := random; eps2:=random;
     cos_a := 1-eps1+eps1*cos_a_max;
     sin_a := sqrt(1-cos_a*cos_a);
@@ -198,18 +199,18 @@ begin
   case RA of
     XY:begin
          p_.x:=H1; p_.y:=V1; hv.new(H2-H1,0,0);wv.new(0,V2-V1,0);
-         BoundBox.new(bMin.new(min(H1,H2),min(V1,V2),p_.z-1),
-                      bMax.new(Max(H1,H2),Max(V1,V2),p_.z+1) );
+         BoundBox.new(bMin.new(min(H1,H2),min(V1,V2),p_.z-eps),
+                      bMax.new(Max(H1,H2),Max(V1,V2),p_.z+eps) );
        end;
     XZ:begin
          p_.x:=H1; p_.z:=V1; hv.new(H2-H1,0,0);wv.new(0,0,V2-V1);
-         BoundBox.new(bMin.new(min(H1,H2),p_.y-1,min(V1,V2)),
-                      bMax.new(Max(H1,H2),p_.y+1,Max(V1,V2)) );
+         BoundBox.new(bMin.new(min(H1,H2),p_.y-eps,min(V1,V2)),
+                      bMax.new(Max(H1,H2),p_.y+eps,Max(V1,V2)) );
        end;
     YZ:begin
          p_.y:=H1; p_.z:=V1; hv.new(0,H2-H1,0);wv.new(0,0,v2-v1);
-         BoundBox.new(bMin.new(p_.x-1,min(H1,H2),min(V1,V2)),
-                      bMax.new(p_.x+1,Max(H1,H2),Max(V1,V2)) );
+         BoundBox.new(bMin.new(p_.x-eps,min(H1,H2),min(V1,V2)),
+                      bMax.new(p_.x+eps,Max(H1,H2),Max(V1,V2)) );
        end;
   end;
   nl:=(hv/wv).norm*-1;
@@ -391,7 +392,7 @@ begin
     p:=f.y
   else
     p:=f.z;
-   if (depth>5) then begin
+  if (depth>5) then begin
     if random<p then 
       f:=f/p 
     else begin

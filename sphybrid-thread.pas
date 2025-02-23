@@ -32,7 +32,7 @@ type
       Line:LineArray;
       cam:CamRecord;
       HybridBVH:HybridBVHClass;
-      function radiance(const r:RayRecord;depth:integer):Vec3;
+      function radiance(const r:RayRecord;depth:integer;E:integer):Vec3;
       procedure Execute; override;
       procedure AddAxis;
    end;
@@ -69,10 +69,10 @@ begin
    result.d := dirct;
 end;
 
-function TMyThread.radiance(const r:RayRecord;depth:integer):Vec3;
+function TMyThread.radiance(const r:RayRecord;depth:integer;E:integer):Vec3;
 var
-  id:integer;
-  obj:DetectorClass;
+  i,tid,id:integer;
+  obj,s:DetectorClass;
   x,n,f,nl,u,v,w,d:Vec3;
   p,r1,r2,r2s,t:real;
   into:boolean;
@@ -80,6 +80,9 @@ var
   nc,nt,nnt,ddn,cos2t,q,a,b,c,R0,Re,RP,Tr,TP:real;
   tDir:Vec3;
   ir:InterRecord;
+  EL:Vec3;
+  SufInfo:SurfaceInfo;
+  uvw:Vec3Matrix;
 begin
   ir.id:=0;depth:=depth+1;
   ir:=HybridBVH.intersect(r);
@@ -106,19 +109,29 @@ begin
   end;
   case obj.refl of
     DIFF:begin
-      r1:=2*PI*random;r2:=random;r2s:=sqrt(r2);
-      w:=nl;
-      if abs(w.x)>0.1 then
-        u:=(u.new(0,1,0)/w).norm
-      else begin
-        u:=(u.new(1,0,0)/w ).norm;
-      end;
-      v:=w/u;
-      d := (u*cos(r1)*r2s + v*sin(r1)*r2s + w*sqrt(1-r2)).norm;
-      result:=obj.e+f.Mult(radiance(ray2.new(x,d),depth) );
+      d:=uvw.GetUniformVec(nl);
+        // Loop over any lights
+      EL:=ZeroVec;
+      tid:=id;
+      for i:=0 to sph.count-1 do begin
+        s:=DetectorClass(sph[i]);
+        if (i=tid) then begin
+          continue;
+        end;
+        if (s.e.x<=0) and  (s.e.y<=0) and (s.e.z<=0)  then continue; // skip non-lights
+        SufInfo:=s.GetLightVec(x,obj);
+        if intersect(Ray2.new(x,SufInfo.l),t,id) then begin
+          if id=i then begin
+            tr:=SufInfo.l*nl;
+            if tr<0 then tr:=0;
+            EL:=EL+f.mult(s.e)*tr*SufInfo.Omega;
+          end;
+        end;
+      end;(*for*)
+      result:=obj.e*E+EL+f.Mult(self.radiance(ray2.new(x,d),depth,0) );
     end;(*DIFF*)
     SPEC:begin
-      result:=obj.e+f.Mult((radiance(ray2.new(x,r.d-n*2*(n*r.d) ),depth)));
+      result:=obj.e+f.Mult((self.radiance(ray2.new(x,r.d-n*2*(n*r.d) ),depth,1)));
     end;(*SPEC*)
     REFR:begin
       RefRay.new(x,r.d-n*2*(n*r.d) );
@@ -126,7 +139,7 @@ begin
       nc:=1;nt:=1.5; if into then nnt:=nc/nt else nnt:=nt/nc; ddn:=r.d*nl;
       cos2t:=1-nnt*nnt*(1-ddn*ddn);
       if cos2t<0 then begin   // Total internal reflection
-        result:=obj.e + f.Mult(radiance(RefRay,depth));
+        result:=obj.e + f.Mult(self.radiance(RefRay,depth,1));
         exit;
       end;
       if into then q:=1 else q:=-1;
@@ -136,12 +149,12 @@ begin
       Re:=R0+(1-R0)*c*c*c*c*c;Tr:=1-Re;P:=0.25+0.5*Re;RP:=Re/P;TP:=Tr/(1-P);
       if depth>2 then begin
         if random<p then // 反射
-          result:=obj.e+f.Mult(radiance(RefRay,depth)*RP)
+          result:=obj.e+f.Mult(self.radiance(RefRay,depth,1)*RP)
         else //屈折
-          result:=obj.e+f.Mult(radiance(ray2.new(x,tdir),depth)*TP);
+          result:=obj.e+f.Mult(self.radiance(ray2.new(x,tdir),depth,1)*TP);
       end
       else begin// 屈折と反射の両方を追跡
-        result:=obj.e+f.Mult(radiance(RefRay,depth)*Re+radiance(ray2.new(x,tdir),depth)*Tr);
+        result:=obj.e+f.Mult(self.radiance(RefRay,depth,1)*Re + self.radiance(ray2.new(x,tdir),depth,1)*Tr);
       end;
     end;(*REFR*)
   end;(*CASE*)
@@ -161,7 +174,7 @@ begin
         for sx := 0 to 1 do begin
           r:=ZeroVec;
           for s := 0 to cam.samps - 1 do begin
-            r:= r+radiance(cam.GetRay(x,y,sx,sy), 0)/ cam.samps;
+            r:= r+radiance(cam.GetRay(x,y,sx,sy), 0,1)/ cam.samps;
           end;(*samps*)
           tColor:=tColor+ ClampVector(r)* 0.25;
         end;(*sx*)

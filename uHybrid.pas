@@ -108,7 +108,7 @@ begin
     end;
     exit;
   end;
-  
+
   if root.Hit(r,EPS,INF) then begin
      RIR:=Right.intersect(r);
      LIR:=Left.intersect(r);
@@ -150,7 +150,6 @@ begin
       end;
    end;
   SetLength(NoBVHary,j+1);SetLength(ary,k+1);
-  for j:=0 to Length(ary)-1 do writeln(' ary[',j,']=',ary[j]);
   BVH:=BVHNodeClass.Create(ary,sph);
 end;
 
