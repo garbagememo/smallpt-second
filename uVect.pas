@@ -118,7 +118,7 @@ begin
   w:=r;
   if abs(w.x)>0.1 then
     u:=(u.new(0,1,0)/w).norm
-  else if abs(w.y)>0.1 then 
+  else if abs(w.z)>0.1 then 
     u:=(u.new(1,0,0)/w ).norm
   else
     u:=(u.new(0,0,1)/w).norm;//この行は本来不要だが・・・
@@ -143,7 +143,7 @@ end;
 
 procedure VecWriteln(V:Vec3);
 begin
-    writeln(v.x,':',v.y,':',v.z);
+    writeln(v.x:6:3,':',v.y:6:3,':',v.z:6:3);
 end;
 
 
