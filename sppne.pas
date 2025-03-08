@@ -79,6 +79,7 @@ var
   SufInfo:SurfaceInfo;
   uvw:Vec3Matrix;
 begin
+writeln('Depth=',depth);
   id:=0;depth:=depth+1;
   if intersect(r,t,id)=false then begin
     result:=ZeroVec;exit;
@@ -117,6 +118,7 @@ begin
         tr:=SufInfo.l*nl;
         if tr<0 then tr:=0;
         EL:=EL+f.Mult(radiance_light(ray2.new(x,SufInfo.l),depth) )*tr*SufInfo.Omega;
+        //光源が複数ある場合、分岐が爆発する。なんとかしないと・・・
       end;(*for*)
       result:=obj.e+EL*0.5+f.mult(radiance(Ray2.new(x,d),depth))*0.5;
     end;(*DIFF*)
@@ -215,7 +217,10 @@ begin
     7:testScene;
   end;      
   
-
+  writeln('w x h=',w,' x ',h);
+  writeln('sampling=',samps);
+  writeln('Model =',ModelID);
+  writeln('Output FileName=',FN);
   cam.new( camPosition.new(50, 52, 295.6),
            camDirection.new(0, -0.042612, -1).norm,
            w,h);
