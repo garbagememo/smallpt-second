@@ -106,7 +106,10 @@ begin
     7:testScene;
   end;      
   
-
+  writeln('w x h=',w,' x ',h);
+  writeln('sampling=',samps);
+  writeln('Model =',ModelID);
+  writeln('Output FileName=',FN);
   cam.new( camPosition.new(50, 52, 295.6),
            camDirection.new(0, -0.042612, -1).norm,
            w,h);
