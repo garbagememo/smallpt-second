@@ -64,7 +64,6 @@ begin
       'm' : begin
         ArgInt:=StrToInt(OptArg);
         modelid:=ArgInt;
-        if modelid>7 then modelid:=0;
         writeln('model id =',ModelID);
       end;
       'o' : begin
@@ -104,6 +103,8 @@ begin
     5:RandomScene;
     6:RectLightScene;
     7:testScene;
+    8:RectCornelScene;
+    else InitScene;
   end;      
   
   writeln('w x h=',w,' x ',h);
