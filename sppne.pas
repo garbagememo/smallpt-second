@@ -79,7 +79,6 @@ var
   SufInfo:SurfaceInfo;
   uvw:Vec3Matrix;
 begin
-writeln('Depth=',depth);
   id:=0;depth:=depth+1;
   if intersect(r,t,id)=false then begin
     result:=ZeroVec;exit;
