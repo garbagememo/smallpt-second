@@ -198,17 +198,17 @@ begin
   RA:=RA_;H1:=Min(H1_,H2_);H2:=Max(H2_,H1_);V1:=Min(V1_,V2_);V2:=Max(V2_,V1_);h:=H2-H1;w:=V2-V1;
   case RA of
     XY:begin
-         p_.x:=H1; p_.y:=V1; hv.new(H2-H1,0,0);wv.new(0,V2-V1,0);
+         p_.x:=H1+h/2; p_.y:=V1+w/2; hv.new(H2-H1,0,0);wv.new(0,V2-V1,0);
          BoundBox.new(bMin.new(min(H1,H2),min(V1,V2),p_.z-eps),
                       bMax.new(Max(H1,H2),Max(V1,V2),p_.z+eps) );
        end;
     XZ:begin
-         p_.x:=H1; p_.z:=V1; hv.new(H2-H1,0,0);wv.new(0,0,V2-V1);
+         p_.x:=H1+h/2; p_.z:=V1+w/2; hv.new(H2-H1,0,0);wv.new(0,0,V2-V1);
          BoundBox.new(bMin.new(min(H1,H2),p_.y-eps,min(V1,V2)),
                       bMax.new(Max(H1,H2),p_.y+eps,Max(V1,V2)) );
        end;
     YZ:begin
-         p_.y:=H1; p_.z:=V1; hv.new(0,H2-H1,0);wv.new(0,0,v2-v1);
+         p_.y:=H1+h/2; p_.z:=V1+w/2; hv.new(0,H2-H1,0);wv.new(0,0,v2-v1);
          BoundBox.new(bMin.new(p_.x-eps,min(H1,H2),min(V1,V2)),
                       bMax.new(p_.x+eps,Max(H1,H2),Max(V1,V2)) );
        end;
@@ -285,7 +285,7 @@ var
 begin
   t:=INF;
   for i:=0 to sph.count-1 do begin
-    d:=SphereClass(sph[i]).intersect(r);
+    d:=DetectorClass(sph[i]).intersect(r);
     if d<t then begin
       t:=d;
       id:=i;
