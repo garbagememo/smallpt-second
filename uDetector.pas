@@ -246,7 +246,7 @@ begin
        end;(*xz*)
     yz:begin
          result:=INF;
-         if abs(r.d.y)<eps then exit;
+         if abs(r.d.x)<eps then exit;
          t:=(p.x-r.o.x)/r.d.x;
          if t<eps then exit;//result is INF
          pt:=r.o+r.d*t;
