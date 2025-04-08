@@ -41,6 +41,8 @@ begin
    result.d := dirct;
 end;
 
+
+
 var
   x,y,sx,sy,s: integer;
   w,h,samps,height,modelid: integer;
@@ -104,13 +106,18 @@ begin
     6:RectLightScene;
     7:testScene;
     8:RectCornelScene;
-    else InitScene;
+    else begin
+      initScene;
+      ModelID:=0;
+    end;
   end;      
-  
+
+    
   writeln('w x h=',w,' x ',h);
   writeln('sampling=',samps);
   writeln('Model =',ModelID);
   writeln('Output FileName=',FN);
+
   cam.new( camPosition.new(50, 52, 295.6),
            camDirection.new(0, -0.042612, -1).norm,
            w,h);

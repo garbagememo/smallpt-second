@@ -156,6 +156,23 @@ begin
     end; { case }
   until c=endofoptions;
 
+   case modelnum of
+     9:TestLightScene;
+     8:RectCornelScene;
+     7:testScene;
+     6:RectLightScene;
+     5:RandomScene;
+     4:WadaScene;
+     3:ForestScene;
+     2:SkyScene;
+     1:InitNEScene;
+     0:InitScene;
+     else begin
+       ModelNum:=0;
+       InitScene;
+     end;
+  end;(*case*)
+
   writeln('samps=',samps);
   writeln('size=',w,'x',h);
   writeln('model=',modelnum);
@@ -164,19 +181,6 @@ begin
   BMP.new(w,h);
   Randomize;
   cam.new(camPosition.new(50, 52, 295.6),camDirection.new(0, -0.042612, -1).norm,w,h,samps );
-  case modelnum of
-     7:testScene;
-     6:RectLightScene;
-     5:RandomScene;
-     4:WadaScene;
-     3:ForestScene;
-     2:SkyScene;
-     1:InitNEScene;
-     else begin
-        InitScene;
-     end;
-  end;(*case*)
-
   
   writeln ('The time is : ',TimeToStr(Time));
   StarTime:=Time; 
