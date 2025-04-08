@@ -157,6 +157,7 @@ begin
   until c=endofoptions;
 
    case modelnum of
+     10:RectAngleScene;
      9:TestLightScene;
      8:RectCornelScene;
      7:testScene;
