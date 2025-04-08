@@ -79,6 +79,7 @@ var
   SufInfo:SurfaceInfo;
   uvw:Vec3Matrix;
 begin
+writeln('Depth=',depth);
   id:=0;depth:=depth+1;
   if intersect(r,t,id)=false then begin
     result:=ZeroVec;exit;
@@ -214,6 +215,8 @@ begin
     5:RandomScene;
     6:RectLightScene;
     7:testScene;
+    8:RectCornelScene;
+    else InitScene;
   end;      
   
   writeln('w x h=',w,' x ',h);
