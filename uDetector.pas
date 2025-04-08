@@ -327,7 +327,8 @@ var
   eps:real;
   i:integer;
 begin
-  result:=RAary[IR.localID].GetLightVec(IR);
+  i:=random(5);//これは面積比で面を出す確率をだすべき
+  result:=RAary[i].GetLightVec(IR);
 end;
 
 function RectAngleClass.intersect(const r:RayRecord):InterRecord;
