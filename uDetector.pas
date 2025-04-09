@@ -13,6 +13,17 @@ const
   M_1_PI=1/PI;
 
 type
+  
+  DetectorClass=class;
+  
+  InterRecord=record
+    t:real;
+    id:integer;
+    LocalID:integer;//GetLightVecで利用する局所オブジェクトIDを入れる・・・汎用的か？
+    obj:DetectorClass;
+    x:Vec3;
+  end;
+     
   SurfaceInfo=record
     l:Vec3;
     omega:real;
@@ -33,30 +44,40 @@ type
     Omega:real;//マルチスレッド時にはクラス内の値は使わないほうがよいのでこの形は修正すべき
     BoundBox:AABBRecord;
     constructor Create(p_,e_,c_:Vec3;refl_:RefType);virtual;
-    function intersect(const r:RayRecord):real;virtual;abstract;
-    function GetNormVec(x:Vec3):Vec3;virtual;abstract;
-    function GetLightVec(x:Vec3;org:DetectorClass):SurfaceInfo;virtual;abstract;
+    function intersect(const r:RayRecord):InterRecord;virtual;abstract;
+    function GetNormVec(IR:InterRecord):Vec3;virtual;abstract;
+    function GetLightVec(IR:InterRecord):SurfaceInfo;virtual;abstract;
   end;
   SphereClass=class(DetectorClass)
     rad:real;       //radius
     constructor Create(rad_:real;p_,e_,c_:Vec3;refl_:RefType);virtual;
-    function intersect(const r:RayRecord):real;override;
-    function GetNormVec(x:Vec3):Vec3;override;
-    function GetLightVec(x:Vec3;org:DetectorClass):SurfaceInfo;override;
+    function intersect(const r:RayRecord):InterRecord;override;
+    function GetNormVec(IR:InterRecord):Vec3;override;
+    function GetLightVec(IR:InterRecord):SurfaceInfo;override;
   end;
   RectClass=class(DetectorClass)
     H1,H2,V1,V2,w,h,area:Real;
     RA:RectAxisType;
     nl,hv,wv:Vec3;
     constructor Create(RA_:RectAxisType;H1_,H2_,V1_,V2_:real;p_,e_,c_:Vec3;refl_:RefType);
-    function intersect(const r:RayRecord):real;override;
-    function GetNormVec(x:Vec3):Vec3;override;
-    function GetLightVec(x:Vec3;org:DetectorClass):SurfaceInfo;override;
+    function intersect(const r:RayRecord):InterRecord;override;
+    function GetNormVec(IR:InterRecord):Vec3;override;
+    function GetLightVec(IR:InterRecord):SurfaceInfo;override;
   end;
+ RectAngleClass=class(DetectorClass)
+    RAary:array[0..5] of RectClass;
+    RACenter:Vec3;
+    TotalArea,XAreaP,YAreaP,ZAreaP:real;
+    RAPary:array[0..5]of real;
+    constructor Create(p1,p2,e_,c_:Vec3;refl_:RefType);
+    function intersect(const r:RayRecord):InterRecord;override;
+    function GetNormVec(IR:InterRecord):Vec3;override;
+    function GetLightVec(IR:InterRecord):SurfaceInfo;override;
+  end;
+ 
+ 
+function intersect(const r:RayRecord;var IR:InterRecord):boolean;
 
-  
-function intersect(const r:RayRecord;var t:real; var id:integer):boolean;
-function radiance(const r:RayRecord;depth:integer):Vec3;
 function radiance_ne_rev(r:RayRecord;depth:integer;E:integer):Vec3;
 
 var
@@ -137,50 +158,51 @@ begin
   p:=p_;e:=e_;c:=c_;refl:=refl_;
 end;
 
-function SphereClass.intersect(const r:RayRecord):real;
+function SphereClass.intersect(const r:RayRecord):InterRecord;
 var
   op:Vec3;
   t,b,det:real;
 begin
+  result.localID:=-1;
   op:=p-r.o;
   t:=eps;b:=op*r.d;det:=b*b-op*op+rad*rad;
   if det<0 then 
-    result:=INF
+    result.t:=INF
   else begin
     det:=sqrt(det);
     t:=b-det;
     if t>eps then 
-      result:=t
+      result.t:=t
     else begin
       t:=b+det;
       if t>eps then 
-        result:=t
+        result.t:=t
       else
-        result:=INF;
+        result.t:=INF;
     end;
   end;
 end;
 
-function SphereClass.GetNormVec(x:Vec3):Vec3;
+function SphereClass.GetNormVec(IR:InterRecord):Vec3;
 begin
-  result:=(x-p).norm;
+  result:=(IR.x-p).norm;
 end;
 
-function SphereClass.GetLightVec(x:Vec3;org:DetectorClass):SurfaceInfo;
+function SphereClass.GetLightVec(IR:InterRecord):SurfaceInfo;
 var
   uvw:Vec3Matrix;
   tan_a,cos_a_max,eps1,eps2,cos_a,sin_a,phi:real;
   nl:Vec3;
 begin
-  tan_a:=(rad*rad)/(x-p).sqr;
+  tan_a:=(rad*rad)/(IR.x-p).sqr;
   if tan_a>=1 then begin
-    nl:=org.GetNormVec(x);//メインですでに実行しているので削除したいが、そうすると見通しが悪くなるので・・・
+    nl:=IR.Obj.GetNormVec(IR);//メインですでに実行しているので削除したいが、そうすると見通しが悪くなるので・・・
     result.l:=uvw.GetUniformVec(nl);//こちらもメインで既に実行している・・・
     result.Omega:=1;
     exit;//result:=uvw.getNormVec;
   end
   else begin
-    uvw.GetUniformVec((p-x).norm);
+    uvw.GetUniformVec((p-IR.x).norm);
     cos_a_max := sqrt(1 - tan_a);
     eps1 := random; eps2:=random;
     cos_a := 1-eps1+eps1*cos_a_max;
@@ -222,46 +244,47 @@ begin
 end;
 
 
-function RectClass.intersect(const r:RayRecord):real;
+function RectClass.intersect(const r:RayRecord):InterRecord;
 var
   t:real;
   pt:Vec3;
 begin
+  result.LocalID:=-1;
   (**光線と平行に近い場合の処理が必要だが・・・**)
   case RA of
     xy:begin
-         result:=INF;
+         result.t:=INF;
          if abs(r.d.z)<eps then exit;
          t:=(p.z-r.o.z)/r.d.z;
          if t<eps then exit;//result is INF
          pt:=r.o+r.d*t;
-         if (pt.x<H2) and (pt.x>H1) and (pt.y<V2)and (pt.y>V1) then result:=t;
+         if (pt.x<H2) and (pt.x>H1) and (pt.y<V2)and (pt.y>V1) then result.t:=t;
        end;(*xy*)
     xz:begin
-         result:=INF;
+         result.t:=INF;
          if abs(r.d.y)<eps then exit;
          t:=(p.y-r.o.y)/r.d.y;
          if t<eps then exit;//result is INF
          pt:=r.o+r.d*t;
-         if (pt.x<H2) and (pt.x>H1) and (pt.z<V2)and (pt.z>V1) then result:=t;
+         if (pt.x<H2) and (pt.x>H1) and (pt.z<V2)and (pt.z>V1) then result.t:=t;
        end;(*xz*)
     yz:begin
-         result:=INF;
+         result.t:=INF;
          if abs(r.d.x)<eps then exit;
          t:=(p.x-r.o.x)/r.d.x;
          if t<eps then exit;//result is INF
          pt:=r.o+r.d*t;
-         if (pt.y<H2) and (pt.y>H1) and (pt.z<V2)and (pt.z>V1) then result:=t;
+         if (pt.y<H2) and (pt.y>H1) and (pt.z<V2)and (pt.z>V1) then result.t:=t;
        end;(*yz*)
   end;(*case*)
 end;
 
-function RectClass.GetNormVec(x:Vec3):Vec3;
+function RectClass.GetNormVec(IR:InterRecord):Vec3;
 begin
   result:=nl;
 end;
 
-function RectClass.GetLightVec(x:Vec3;org:DetectorClass):SurfaceInfo;
+function RectClass.GetLightVec(IR:InterRecord):SurfaceInfo;
 var
   r:Vec3;
   dist,eps1,eps2:real;
@@ -274,102 +297,98 @@ begin
     XZ:begin r.x:=p.x+h*eps1;r.z:=p.z+w*eps2; r.y:=p.y end;
     YZ:begin r.y:=p.y+h*eps1;r.z:=p.z+w*eps2; r.x:=p.x end;
   end;
-  result.l:=(r-x).norm;
-  dist:=(x-r).sqr;
+  result.l:=(r-IR.x).norm;
+  dist:=(IR.x-r).sqr;
   result.Omega:=Area/(2*pi*dist);
 end;
 
-function intersect(const r:RayRecord;var t:real; var id:integer):boolean;
-var 
-  n,d:real;
+constructor RectAngleClass.Create(p1,p2,e_,c_:Vec3;refl_:RefType);
+begin
+  inherited create(p2,e_,c_,refl_);
+  (*xy*)
+  RAary[0]:=RectClass.Create(XY,p1.x,p2.x,p1.y,p2.y,p1,e_,c_,refl_);
+  RAary[1]:=RectClass.Create(XY,p1.x,p2.x,p1.y,p2.y,p2,e_,c_,refl_);
+  (*xz*)
+  RAary[2]:=RectClass.Create(XZ,p1.x,p2.x,p1.z,p2.z,p1,e_,c_,refl_);
+  RAary[3]:=RectClass.Create(XZ,p1.x,p2.x,p1.z,p2.z,p2,e_,c_,refl_);
+  (*YZ*)
+  RAary[4]:=RectClass.Create(YZ,p1.y,p2.y,p1.z,p2.z,p1,e_,c_,refl_);
+  RAary[5]:=RectClass.Create(YZ,p1.y,p2.y,p1.z,p2.z,p2,e_,c_,refl_);  
+  (*NEE*)
+  RACenter:=(p1+p2)/2;
+  TotalArea:=(RAary[0].Area+RAary[2].Area+RAary[4].Area)*2;
+  RAPary[0]:=RAary[0].Area/TotalArea;
+  RAPary[1]:=RAary[1].Area/TotalArea+RAPary[0];
+  RAPary[2]:=RAary[2].Area/TotalArea+RAPary[1];
+  RAPary[3]:=RAary[3].Area/TotalArea+RAPary[2];
+  RAPary[4]:=RAary[4].Area/TotalArea+RAPary[3];
+  RAPary[5]:=RAary[5].Area/TotalArea+RAPary[4];
+
+end;
+
+function RectAngleClass.GetLightVec(IR:InterRecord):SurfaceInfo;
+var
+  eps,r:real;
   i:integer;
 begin
-  t:=INF;
-  for i:=0 to sph.count-1 do begin
-    d:=DetectorClass(sph[i]).intersect(r);
-    if d<t then begin
-      t:=d;
-      id:=i;
-    end;
-  end;
-  result:=(t<inf);
-end;
-
-function radiance(const r:RayRecord;depth:integer):Vec3;
-var
-  id:integer;
-  obj:SphereClass;
-  x,n,nl,f:Vec3;
-  uvw:Vec3Matrix;
-  p,t:real;
-  into:boolean;
-  ray2,RefRay:RayRecord;
-  nc,nt,nnt,ddn,cos2t,q,a,b,c,R0,Re,RP,Tr,TP:real;
-  tDir:Vec3;
-begin
-  id:=0;depth:=depth+1;
-  if intersect(r,t,id)=false then begin
-    result:=ZeroVec;exit;
-  end;
-  obj:=SphereClass(sph[id]);
-  x:=r.o+r.d*t; n:=(x-obj.p).norm; f:=obj.c;
-  if n.dot(r.d)<0 then nl:=n else nl:=n*-1;
-  if (f.x>f.y)and(f.x>f.z) then
-    p:=f.x
-  else if f.y>f.z then 
-    p:=f.y
-  else
-    p:=f.z;
-   if (depth>5) then begin
-    if random<p then 
-      f:=f/p 
-    else begin
-      result:=obj.e;
+  r:=random;
+  for i:=0 to 5 do begin
+    if r<RAPary[i] then begin
+      result:=RAary[i].GetLightVec(IR);
       exit;
     end;
-  end;
-  case obj.refl of
-    DIFF:begin
-      result:=obj.e+f.Mult(radiance(ray2.new(x,uvw.GetUniformVec(nl) ),depth) );
-      //GetUniformVecは引数vecを中心に半円状に一様分布するVecを算出する
-    end;(*DIFF*)
-    SPEC:begin
-      result:=obj.e+f.mult(radiance(ray2.new(x,r.d-n*2*(n*r.d) ),depth));
-    end;(*SPEC*)
-    REFR:begin
-      RefRay.new(x,r.d-n*2*(n*r.d) );
-      into:= (n*nl>0);
-      nc:=1;nt:=1.5; if into then nnt:=nc/nt else nnt:=nt/nc; ddn:=r.d*nl; 
-      cos2t:=1-nnt*nnt*(1-ddn*ddn);
-      if cos2t<0 then begin   // Total internal reflection
-        result:=obj.e + f.mult(radiance(RefRay,depth));
-        exit;
-      end;
-      if into then q:=1 else q:=-1;
-      tdir := (r.d*nnt - n*(q*(ddn*nnt+sqrt(cos2t)))).norm;
-      if into then Q:=-ddn else Q:=tdir*n;
-      a:=nt-nc; b:=nt+nc; R0:=a*a/(b*b); c := 1-Q;
-      Re:=R0+(1-R0)*c*c*c*c*c;Tr:=1-Re;P:=0.25+0.5*Re;RP:=Re/P;TP:=Tr/(1-P);
-      if depth>2 then begin
-        if random<p then // 反射
-          result:=obj.e+f.mult(radiance(RefRay,depth)*RP)
-        else //屈折
-          result:=obj.e+f.mult(radiance(ray2.new(x,tdir),depth)*TP);
-      end
-      else begin// 屈折と反射の両方を追跡
-        result:=obj.e+f.mult(radiance(RefRay,depth)*Re+radiance(ray2.new(x,tdir),depth)*Tr);
-      end;
-    end;(*REFR*)
-  end;(*CASE*)
+  end;      
+  result:=RAary[5].GetLightVec(IR);
 end;
 
+function RectAngleClass.intersect(const r:RayRecord):InterRecord;
+var
+  i:integer;
+  d,t:real;
+  ir:InterRecord;
+begin
+  result.t:=INF;
+  result.localID:=-1;
+  for i:=0 to 5 do begin
+    IR:=RAary[i].intersect(r);
+    if result.t>IR.t then begin
+      result.t:=IR.t;
+      result.localID:=i;
+    end;
+  end;
+end;
+
+function RectAngleClass.GetNormVec(IR:InterRecord):Vec3;
+begin
+  result:=RAary[IR.LocalID].GetNormVec(IR);
+end;
+
+
+
+function intersect(const r:RayRecord;var IR:InterRecord):boolean;
+var
+  OIR:InterRecord;
+  n:real;
+  i:integer;
+begin
+  IR.t:=INF;
+  for i:=0 to sph.count-1 do begin
+    OIR:=DetectorClass(sph[i]).intersect(r);
+    if OIR.t<IR.t then begin
+      IR.t:=OIR.t;
+      IR.id:=i;
+      IR.LocalID:=OIR.LocalID;
+    end;
+  end;
+  result:=(IR.t<inf);
+end;
 
 function radiance_ne_rev(r:RayRecord;depth:integer;E:integer):Vec3;
 var
-  id,i,tid:integer;
-  obj,s:DetectorClass;
-  x,n,f,nl,d:Vec3;
-  p,t:real;
+  i,tid:integer;
+  s:DetectorClass;
+  n,f,nl,d:Vec3;
+  p:real;
   into:boolean;
   Ray2,RefRay:RayRecord;
   nc,nt,nnt,ddn,cos2t,q,a,b,c,R0,Re,RP,Tr,TP:real;
@@ -377,14 +396,15 @@ var
   EL:Vec3;
   SufInfo:SurfaceInfo;
   uvw:Vec3Matrix;
+  IR:InterRecord;
 begin
-  id:=0;depth:=depth+1;
-  if intersect(r,t,id)=false then begin
+  IR.id:=0;depth:=depth+1;
+  if intersect(r,IR)=false then begin
     result:=ZeroVec;exit;
   end;
-  obj:=DetectorClass(sph[id]);
-  x:=r.o+r.d*t;  f:=obj.c;
-  n:=obj.GetNormVec(x);
+  IR.obj:=DetectorClass(sph[IR.id]);
+  IR.x:=r.o+r.d*IR.t;  f:=IR.obj.c;
+  n:=IR.obj.GetNormVec(IR);
   if n.dot(r.d)<0 then nl:=n else nl:=n*-1;
   if (f.x>f.y)and(f.x>f.z) then
     p:=f.x
@@ -392,47 +412,49 @@ begin
     p:=f.y
   else
     p:=f.z;
-  if (depth>5) then begin
+  
+  if depth>5 then begin
     if random<p then 
       f:=f/p 
     else begin
-      result:=obj.e;
+      result:=IR.obj.e;
       exit;
     end;
   end;
-  case obj.refl of
+  
+  case IR.obj.refl of
     DIFF:begin
       d:=uvw.GetUniformVec(nl);
         // Loop over any lights
       EL:=ZeroVec;
-      tid:=id;
+      tid:=IR.id;
       for i:=0 to sph.count-1 do begin
         s:=DetectorClass(sph[i]);
         if (i=tid) then begin
           continue;
         end;
         if (s.e.x<=0) and  (s.e.y<=0) and (s.e.z<=0)  then continue; // skip non-lights
-        SufInfo:=s.GetLightVec(x,obj);
-        if intersect(Ray2.new(x,SufInfo.l),t,id) then begin
-          if id=i then begin
+        SufInfo:=s.GetLightVec(IR);
+        if intersect(Ray2.new(IR.x,SufInfo.l),IR) then begin
+          if IR.id=i then begin
             tr:=SufInfo.l*nl;
             if tr<0 then tr:=0;
             EL:=EL+f.mult(s.e)*tr*SufInfo.Omega;
           end;
         end;
       end;(*for*)
-      result:=obj.e*E+EL+f.Mult(radiance_ne_rev(ray2.new(x,d),depth,0) );
+      result:=IR.obj.e*E+EL+f.Mult(radiance_ne_rev(ray2.new(IR.x,d),depth,0) );
     end;(*DIFF*)
     SPEC:begin
-      result:=obj.e+f.mult(radiance_ne_rev(ray2.new(x,r.d-n*2*(n*r.d) ),depth,1));
+      result:=IR.obj.e+f.mult(radiance_ne_rev(ray2.new(IR.x,r.d-n*2*(n*r.d) ),depth,1));
     end;(*SPEC*)
     REFR:begin
-      RefRay.new(x,r.d-n*2*(n*r.d) );
+      RefRay.new(IR.x,r.d-n*2*(n*r.d) );
       into:= (n*nl>0);
       nc:=1;nt:=1.5; if into then nnt:=nc/nt else nnt:=nt/nc; ddn:=r.d*nl; 
       cos2t:=1-nnt*nnt*(1-ddn*ddn);
       if cos2t<0 then begin   // Total internal reflection
-        result:=obj.e + f.mult(radiance_ne_rev(RefRay,depth,1));
+        result:=IR.obj.e + f.mult(radiance_ne_rev(RefRay,depth,1));
         exit;
       end;
       if into then q:=1 else q:=-1;
@@ -442,12 +464,14 @@ begin
       Re:=R0+(1-R0)*c*c*c*c*c;Tr:=1-Re;P:=0.25+0.5*Re;RP:=Re/P;TP:=Tr/(1-P);
       if depth>2 then begin
         if random<p then // 反射
-          result:=obj.e+f.mult(radiance_ne_rev(RefRay,depth,1)*RP)
+          result:=IR.obj.e+f.mult(radiance_ne_rev(RefRay,depth,1)*RP)
         else //屈折
-          result:=obj.e+f.mult(radiance_ne_rev(ray2.new(x,tdir),depth,1)*TP);
+          result:=IR.obj.e+f.mult(radiance_ne_rev(ray2.new(IR.x,tdir),depth,1)*TP);
       end
       else begin// 屈折と反射の両方を追跡
-        result:=obj.e+f.mult(radiance_ne_rev(RefRay,depth,1)*Re+radiance_ne_rev(ray2.new(x,tdir),depth,1)*Tr);
+        result:=IR.obj.e
+          +f.mult(radiance_ne_rev(RefRay,depth,1)*Re
+                  +radiance_ne_rev(ray2.new(IR.x,tdir),depth,1)*Tr);
       end;
     end;(*REFR*)
   end;(*CASE*)

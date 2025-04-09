@@ -16,7 +16,8 @@ procedure RectLightScene;
 procedure testScene;
 procedure RectCornelScene;
 procedure TestlightScene;
-
+procedure RectAngleScene;
+procedure RectAngleLightScene;
 
 implementation
 
@@ -229,6 +230,44 @@ begin
   sph.add( RectClass.Create(XZ,40,60,70,90,p.new(50,70,80),  e.new(4,4,4)*3,   ZeroVec,  DIFF)  );//Ligth
 end;
 
+procedure RectAngleScene;
+var
+   p1,p2,p,c,e:Vec3;
+begin
+  sph:=TList.Create;
+  sph.add( RectClass.Create(YZ, 0, 81.6, 0, 170, p.new( 1,0,0),    ZeroVec,c.new(0.75,0.25,0.25),DIFF) );//Left
+  sph.add( RectClass.Create(YZ, 0, 81.6, 0, 170, p.new(99,0,0),    ZeroVec,c.new(0.25,0.25,0.75),DIFF) );//Right
+  sph.add( RectClass.Create(XY, 1,   99, 0,81.6, p.new( 1,0,0),    ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Back
+  sph.add( RectClass.Create(XY, 1,   99, 0,81.6, p.new( 1,0,170),  ZeroVec,c.new(0,0,0),      DIFF) );//Front
+  sph.add( RectClass.Create(XZ, 1,   99, 0,170,  p.new( 1,0,0),    ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Bottomm
+  sph.add( RectClass.Create(XZ, 1,   99, 0,170,  p.new( 1,81.6,0), ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Top
+
+  sph.add( RectAngleClass.Create(p1.new(40,0,60),p2.new(60,40,80), zeroVec,c.new(0.25, 0.75, 0.25),  DIFF) );//Green Cube
+
+  sph.add( SphereClass.Create(16.5,p.new(27,16.5,47),        ZeroVec,c.new(1,1,1)*0.999, SPEC) );//Mirror
+  sph.add( SphereClass.Create(16.5,p.new(73,16.5,100),        ZeroVec,c.new(1,1,1)*0.999, REFR) );//Glass
+  sph.add( RectClass.Create(XZ,38,58,72,92,p.new(50,80,80),  e.new(4,4,4)*3,   ZeroVec,  DIFF)  );//Ligth
+end;
+
+procedure RectAngleLightScene;
+var
+   p1,p2,p,c,e:Vec3;
+begin
+  sph:=TList.Create;
+  sph.add( RectClass.Create(YZ, 0, 81.6, 0, 170, p.new( 1,0,0),    ZeroVec,c.new(0.75,0.25,0.25),DIFF) );//Left
+  sph.add( RectClass.Create(YZ, 0, 81.6, 0, 170, p.new(99,0,0),    ZeroVec,c.new(0.25,0.25,0.75),DIFF) );//Right
+  sph.add( RectClass.Create(XY, 1,   99, 0,81.6, p.new( 1,0,0),    ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Back
+  sph.add( RectClass.Create(XY, 1,   99, 0,81.6, p.new( 1,0,170),  ZeroVec,c.new(0,0,0),      DIFF) );//Front
+  sph.add( RectClass.Create(XZ, 1,   99, 0,170,  p.new( 1,0,0),    ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Bottomm
+  sph.add( RectClass.Create(XZ, 1,   99, 0,170,  p.new( 1,81.6,0), ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Top
+
+  sph.add( RectAngleClass.Create(p1.new(40,0,60),p2.new(60,40,80), zeroVec,c.new(0.25, 0.75, 0.25),  DIFF) );//Green Cube
+
+  sph.add( SphereClass.Create(16.5,p.new(27,16.5,47),        ZeroVec,c.new(1,1,1)*0.999, SPEC) );//Mirror
+  sph.add( SphereClass.Create(16.5,p.new(73,16.5,100),        ZeroVec,c.new(1,1,1)*0.999, REFR) );//Glass
+
+  sph.add( RectAngleClass.Create(p1.new(45,68,75),p2.new(55,72,85), e.new(4,4,4)*50,   ZeroVec,  DIFF) );//Ligth
+end;
 
 begin
 end.
