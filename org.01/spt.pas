@@ -6,7 +6,7 @@ uses
   {$ifdef unix}
   cthreads,cmem,
   {$endif}
-  SysUtils,Classes,Math,uVect,uBMP,getopts,uDetector,uBVH;
+  SysUtils,Classes,Math,uVect,uBMP,getopts,uDetector;
 
 const
    MaxThread=32;
