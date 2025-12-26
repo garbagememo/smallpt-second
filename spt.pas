@@ -6,7 +6,7 @@ uses
   {$ifdef unix}
   cthreads,cmem,
   {$endif}
-  SysUtils,Classes,Math,uVect,uBMP,getopts,uDetector,uBVH;
+  SysUtils,Classes,Math,uVect,uBMP,getopts,uDetector;
 
 const
    MaxThread=32;
@@ -133,7 +133,6 @@ var
   c:char;
   StarTime:TDateTime;
 var
-   ary:IntegerArray;
   ThreadAry:array[0..MaxThread-1] of TMyThread;
 begin
    ThreadNum:=8;
@@ -202,8 +201,6 @@ begin
           cam.new(camPosition.new(55,40,295.6),
                   camDirection.new(0,-0.12,-1).norm,
                   w,h,samps);
-//          cam.o.new(55, 40, 295.6);
-//          cam.d:=cam.d.new(0, -0.12, -1.0).norm;
           cam.PlaneDist:=70;
        end;
      4:WadaScene;

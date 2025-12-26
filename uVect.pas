@@ -29,12 +29,6 @@ type
        function new(o_,d_:Vec3):RayRecord;
       end;
 
-  InterRecord=record
-     isHit:boolean;
-     t:real;
-     id:integer;
-  end;
-
    function ClampVector(v:Vec3):Vec3;
    function ColToRGB(v:Vec3):rgbColor;
 const

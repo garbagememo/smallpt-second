@@ -10,6 +10,16 @@ const
   eps=1e-4;
   INF=1e20;
 type
+   ShapeClass=class;
+   SphereClass=class;
+   
+   SurfaceInfo=record
+      isHit:boolean;
+      t:real;
+      x,n,nl:Vec3;
+      obj:SphereClass;
+   end;
+      
    AABBRecord=record
       Min,Max:Vec3;
       function hit(r:RayRecord;tmin,tmax:real):boolean;
@@ -18,15 +28,8 @@ type
    end;
 
    ShapeClass=class
-      function intersect(r:RayRecord):InterRecord;virtual;abstract;
+      function intersect(r:RayRecord):SurfaceInfo;virtual;abstract;
    end;
-
-   ShapeListClass=class(ShapeClass)
-      sph:TList;
-      constructor create;
-      function intersect(r:RayRecord):InterRecord;override;
-   end;
-      
    
    SphereClass=class
       rad:real;       //radius
@@ -36,9 +39,10 @@ type
       m:MaterialClass;
       constructor Create(rad_:real;p_,e_,c_:Vec3;refl_:RefType);
       function intersect(const r:RayRecord):real;
+      function GetNorm(x:Vec3):Vec3;
    end;
 
-function intersect(const r:RayRecord;var t:real; var id:integer):boolean;
+function intersect(const r:RayRecord):SurfaceInfo;
 function radiance(const r:RayRecord;depth:integer):Vec3;
 
 var
@@ -149,17 +153,22 @@ begin
   end;
 end;
 
-constructor ShapeListClass.Create;
+function SphereClass.GetNorm(x:Vec3):Vec3;
 begin
-   sph:=Tlist.create;
+  result:=(x-p).norm;
 end;
 
-function ShapeListClass.intersect(r:RayRecord):InterRecord;
+function intersect(const r:RayRecord):SurfaceInfo;
 var 
-  t,n,d:real;
+  x,n,nl:Vec3;
+  t,d:real;
   i,id:integer;
+
 begin
-  t:=INF;id:=sph.count-1;
+  result.isHit:=false;
+  result.t:=INF;
+  t:=INF;
+  id:=sph.count-1;
   for i:=0 to sph.count-1 do begin
     d:=SphereClass(sph[i]).intersect(r);
     if d<t then begin
@@ -168,26 +177,13 @@ begin
     end;
   end;
   result.isHit:=(t<inf);
-  result.t:=t;
-  result.id:=id;
-end;
-
-
-
-function intersect(const r:RayRecord;var t:real; var id:integer):boolean;
-var 
-  n,d:real;
-  i:integer;
-begin
-  t:=INF;
-  for i:=0 to sph.count-1 do begin
-    d:=SphereClass(sph[i]).intersect(r);
-    if d<t then begin
-      t:=d;
-      id:=i;
-    end;
+  if result.isHit then begin
+     result.t:=t;
+     result.x:=r.o+r.d*t;
+     result.obj:=SphereClass(sph[id]);
+     result.n:=result.obj.GetNorm(result.x);
+     if result.n.dot(r.d)<0 then result.nl:=result.n else result.nl:=result.n*-1;
   end;
-  result:=(t<inf);
 end;
 
 function radiance(const r:RayRecord;depth:integer):Vec3;
@@ -199,24 +195,24 @@ var
   into:boolean;
   ray2,RefRay:RayRecord;
   tDir:Vec3;
+  sInfo:SurfaceInfo;
   tInfo:TraceInfo;
 begin
   id:=0;depth:=depth+1;
-  if intersect(r,t,id)=false then begin
+  sInfo:=intersect(r);
+  if sInfo.isHit=false then begin
     result:=ZeroVec;exit;
   end;
-  obj:=SphereClass(sph[id]);
-  x:=r.o+r.d*t; n:=(x-obj.p).norm; f:=obj.c;
-  if n.dot(r.d)<0 then nl:=n else nl:=n*-1;
+  f:=sInfo.obj.c;
   p:=Max(f.x,Max(f.y,f.z));
   if (depth>5) then begin
     if random<p then 
       f:=f/p 
     else
-      Exit(obj.e);
+      Exit(sInfo.obj.e);
   end;
-  tInfo:=obj.m.GetRay(r,x,n,nl);
-  result:=obj.e+f.Mult(radiance(tInfo.r,depth))*tInfo.cpc;
+  tInfo:=sInfo.obj.m.GetRay(r,sInfo.x,sInfo.n,sInfo.nl);
+  result:=sInfo.obj.e+f.Mult(radiance(tInfo.r,depth))*tInfo.cpc;
 end;
 
 procedure InitScene;
