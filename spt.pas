@@ -189,13 +189,15 @@ begin
   Randomize;
   cam.new(camPosition.new(50, 52, 295.6),camDirection.new(0, -0.042612, -1).norm,w,h,samps );
   case modelnum of
-     6:begin
+     10:begin
           SpiralScene;
           cam.new(camPosition.new(0,300,400),
                   camDirection.new(0,-300,-400).norm,
                   w,h,samps);
           cam.PlaneDist:=70;
-       end;
+        end;
+     7:RectLightScene;
+     6:IslandScene;
      5:begin
           RandomScene;
           cam.new(camPosition.new(55,40,295.6),

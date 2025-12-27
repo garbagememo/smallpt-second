@@ -13,7 +13,8 @@ procedure ForestScene;
 procedure WadaScene;
 procedure RandomScene;
 procedure SpiralScene;
-  
+procedure IslandScene;
+procedure RectLightScene;  
 
 
 implementation
@@ -162,6 +163,39 @@ begin
   sph.add(SphereClass.Create(R, p.new(50,40.8,62)+e.new(0,0,1)*D,            ZeroVec, c.new(1,1,1)*0.999, REFR)); //front
 end;
 
+procedure IslandScene;
+var
+   p,c,e:Vec3;
+   Cen:Vec3;
+begin
+   sph:=TList.Create;
+   Cen.new(50,-20,-860);
+   Sph.add(SphereClass.Create(160, Cen+p.new(0, 600, -500),e.new(1,1,1)*2e2, ZeroVec,  DIFF)); // sun
+   Sph.add(SphereClass.Create(800, Cen+p.new(0,-880,-9120),e.new(1,1,1)*2e1, ZeroVec,  DIFF)); // horizon
+   Sph.add(SphereClass.Create(10000,Cen+p.new(0,0,-200), e.new(0.0627, 0.188, 0.569)*1e0, c.new(1,1,1)*0.4,  DIFF)); // sky
+   Sph.add(SphereClass.Create(800, Cen+p.new(0,-720,-200),ZeroVec,  c.new(0.110, 0.898, 1.00)*0.996,  REFR)); // water
+   Sph.add(SphereClass.Create(790, Cen+p.new(0,-720,-200),ZeroVec,  c.new(0.4,0.3,0.04)*0.6, DIFF)); // earth
+   Sph.add(SphereClass.Create(325, Cen+p.new(0,-255,-50), ZeroVec,  c.new(0.4,0.3,0.04)*0.8, DIFF)); // island
+   sph.add(SphereClass.Create(275, Cen+p.new(0,-205,-33), ZeroVec,  c.new(0.02,0.3,0.02)*0.75,DIFF)); // grass
+end;
+
+procedure RectLightScene;
+var
+   p,c,e:Vec3;
+begin
+  sph:=TList.Create;
+  sph.add( RectClass.Create(YZ, 0, 81.6, 0, 170, p.new( 1,0,0),    ZeroVec,c.new(0.75,0.25,0.25),DIFF) );//Left
+  sph.add( RectClass.Create(YZ, 0, 81.6, 0, 170, p.new(99,0,0),    ZeroVec,c.new(0.25,0.25,0.75),DIFF) );//Right
+  sph.add( RectClass.Create(XY, 1,   99, 0,81.6, p.new( 1,0,0),    ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Back
+  sph.add( RectClass.Create(XY, 1,   99, 0,81.6, p.new( 1,0,170),  ZeroVec,c.new(0,0,0),      DIFF) );//Front
+  sph.add( RectClass.Create(XZ, 1,   99, 0,170,  p.new( 1,0,0),    ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Bottomm
+  sph.add( RectClass.Create(XZ, 1,   99, 0,170,  p.new( 1,81.6,0), ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Top
+  sph.add( SphereClass.Create(16.5,p.new(27,16.5,47),        ZeroVec,c.new(1,1,1)*0.999, SPEC) );//Mirror
+  sph.add( SphereClass.Create(16.5,p.new(73,16.5,88),        ZeroVec,c.new(1,1,1)*0.999, REFR) );//Glass
+  sph.add( RectClass.Create(XZ,40,60,70,90,p.new(50,70,80),  e.new(4,4,4)*3,   ZeroVec,  DIFF)  );//Ligth
+end;
+
+
 procedure SpiralScene;
 var
    Cen,Cen1,Cen2,Cen3:Vec3;
@@ -187,6 +221,7 @@ begin
      sph.add(SphereClass.Create(5,Cen1,ZeroVec,c.new(random,Random,random),DIFF));
   end;
 end;
+
 
 
 begin

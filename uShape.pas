@@ -29,18 +29,29 @@ type
    ShapeClass=class
       p,c,e:Vec3;// position emit color
       m:MaterialClass;
+      BoundBox:AABBRecord;
+      constructor Create(p_,e_,c_:Vec3;refl_:RefType);virtual;
       function intersect(const r:RayRecord):real;virtual;abstract;
       function GetNorm(x:Vec3):Vec3;virtual;abstract;
    end;
    
    SphereClass=class(ShapeClass)
       rad:real;       //radius
-      refl:RefType;
-      BoundBox:AABBRecord;
-      constructor Create(rad_:real;p_,e_,c_:Vec3;refl_:RefType);
+      constructor Create(rad_:real;p_,e_,c_:Vec3;refl_:RefType);virtual;
       function intersect(const r:RayRecord):real;override;
       function GetNorm(x:Vec3):Vec3;override;
    end;
+
+   RectAxisType=(XY,YZ,XZ);(*平面がどっち向いているか*)
+   RectClass=class(ShapeClass)
+      H1,H2,V1,V2,w,h:Real;
+      RA:RectAxisType;
+      nl,hv,wv:Vec3;
+      constructor Create(RA_:RectAxisType;H1_,H2_,V1_,V2_:real;p_,e_,c_:Vec3;refl_:RefType);
+      function intersect(const r:RayRecord):real;override;
+      function GetNorm(x:Vec3):Vec3;override;
+   end;
+
 
 function intersect(const r:RayRecord):SurfaceInfo;
 function radiance(const r:RayRecord;depth:integer):Vec3;
@@ -108,18 +119,23 @@ begin
     result:=true;
 end;
 
+constructor ShapeClass.Create(p_,e_,c_:Vec3;refl_:RefType);
+begin
+   p:=p_;e:=e_;c:=c_;
+   if refl_=DIFF then m:=DiffuseClass.Create;
+   if refl_=SPEC then m:=MirrorClass.Create;
+   if refl_=REFR then m:=RefractClass.Create;
+end;
 
 
 constructor SphereClass.Create(rad_:real;p_,e_,c_:Vec3;refl_:RefType);
 var
    b:Vec3;
 begin
-   rad:=rad_;p:=p_;e:=e_;c:=c_;refl:=refl_;
+   inherited create(p_,e_,c_,refl_);
+   rad:=rad_;
    BoundBox.new(p - b.new(rad, rad, rad),
                 p + b.new(rad, rad, rad));
-   if refl=DIFF then m:=DiffuseClass.Create;
-   if refl=SPEC then m:=MirrorClass.Create;
-   if refl=REFR then m:=RefractClass.Create;
 end;
 function SphereClass.intersect(const r:RayRecord):real;
 var
@@ -149,6 +165,76 @@ function SphereClass.GetNorm(x:Vec3):Vec3;
 begin
   result:=(x-p).norm;
 end;
+
+constructor RectClass.Create(RA_:RectAxisType;H1_,H2_,V1_,V2_:real;p_,e_,c_:Vec3;refl_:RefType);
+var
+   bMin,bMax:Vec3;
+begin
+   RA:=RA_;H1:=Min(H1_,H2_);H2:=Max(H2_,H1_);V1:=Min(V1_,V2_);V2:=Max(V2_,V1_);h:=H2-H1;w:=V2-V1;
+   case RA of
+      XY:begin
+            p_.x:=H1; p_.y:=V1; hv.new(H2-H1,0,0);wv.new(0,V2-V1,0);
+            BoundBox.new(bMin.new(min(H1,H2),min(V1,V2),p_.z-eps),
+                         bMax.new(Max(H1,H2),Max(V1,V2),p_.z+eps) );
+         end;
+      XZ:begin
+            p_.x:=H1; p_.z:=V1; hv.new(H2-H1,0,0);wv.new(0,0,V2-V1);
+            BoundBox.new(bMin.new(min(H1,H2),p_.y-eps,min(V1,V2)),
+                         bMax.new(Max(H1,H2),p_.y+eps,Max(V1,V2)) );
+         end;
+      YZ:begin
+            p_.y:=H1; p_.z:=V1; hv.new(0,H2-H1,0);wv.new(0,0,v2-v1);
+            BoundBox.new(bMin.new(p_.x-eps,min(H1,H2),min(V1,V2)),
+                         bMax.new(p_.x+eps,Max(H1,H2),Max(V1,V2)) );
+         end;
+   end;
+   nl:=(hv/wv).norm*-1;
+   //  writeln('Area=',Area:5:0,' w:h=',w:4:0,':',h:4:0);
+   inherited create(p_,e_,c_,refl_);
+   //  writeln('nl=');VecWriteln(nl);
+end;
+
+
+function RectClass.intersect(const r:RayRecord):real;
+var
+   t:real;
+   pt:Vec3;
+begin
+   (**光線と平行に近い場合の処理が必要だが・・・**)
+   case RA of
+      xy:begin
+            result:=INF;
+            if abs(r.d.z)<eps then exit;
+            t:=(p.z-r.o.z)/r.d.z;
+            if t<eps then exit;//result is INF
+            pt:=r.o+r.d*t;
+            if (pt.x<H2) and (pt.x>H1) and (pt.y<V2)and (pt.y>V1) then result:=t;
+         end;(*xy*)
+      xz:begin
+            result:=INF;
+            if abs(r.d.y)<eps then exit;
+            t:=(p.y-r.o.y)/r.d.y;
+            if t<eps then exit;//result is INF
+            pt:=r.o+r.d*t;
+            if (pt.x<H2) and (pt.x>H1) and (pt.z<V2)and (pt.z>V1) then result:=t;
+         end;(*xz*)
+      yz:begin
+            result:=INF;
+            if abs(r.d.x)<eps then exit;
+            t:=(p.x-r.o.x)/r.d.x;
+            if t<eps then exit;//result is INF
+            pt:=r.o+r.d*t;
+            if (pt.y<H2) and (pt.y>H1) and (pt.z<V2)and (pt.z>V1) then result:=t;
+         end;(*yz*)
+   end;(*case*)
+end;
+
+function RectClass.GetNorm(x:Vec3):Vec3;
+begin
+  result:=nl;
+end;
+
+
 
 function intersect(const r:RayRecord):SurfaceInfo;
 var 
