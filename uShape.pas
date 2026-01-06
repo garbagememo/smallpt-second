@@ -52,12 +52,17 @@ type
       function GetNorm(x:Vec3):Vec3;override;
    end;
 
-
-function intersect(const r:RayRecord):SurfaceInfo;
+   ShapeListClass=Class
+      shapes:TList;
+      constructor create;
+      procedure add(s : ShapeClass);
+      function intersect(const r: RayRecord):SurfaceInfo;
+   end;
+   
 function radiance(const r:RayRecord;depth:integer):Vec3;
 
 var
-   sph:TList;
+   sph:ShapeListClass;
 
 
 
@@ -234,9 +239,16 @@ begin
   result:=nl;
 end;
 
+constructor ShapeListClass.create;
+begin
+   Shapes:=TList.Create;
+end;
+procedure ShapeListClass.add(s: ShapeClass);
+begin
+   Shapes.add(s);
+end;
 
-
-function intersect(const r:RayRecord):SurfaceInfo;
+function ShapeListClass.intersect(const r:RayRecord):SurfaceInfo;
 var 
   x,n,nl:Vec3;
   t,d:real;
@@ -246,9 +258,9 @@ begin
   result.isHit:=false;
   result.t:=INF;
   t:=INF;
-  id:=sph.count-1;
-  for i:=0 to sph.count-1 do begin
-    d:=ShapeClass(sph[i]).intersect(r);
+  id:=Shapes.count-1;
+  for i:=0 to Shapes.count-1 do begin
+    d:=ShapeClass(Shapes[i]).intersect(r);
     if d<t then begin
       t:=d;
       id:=i;
@@ -258,7 +270,7 @@ begin
   if result.isHit then begin
      result.t:=t;
      result.x:=r.o+r.d*t;
-     result.obj:=ShapeClass(sph[id]);
+     result.obj:=ShapeClass(Shapes[id]);
      result.n:=result.obj.GetNorm(result.x);
      if result.n.dot(r.d)<0 then result.nl:=result.n else result.nl:=result.n*-1;
   end;
@@ -272,7 +284,7 @@ var
   tInfo:TraceInfo;
 begin
   depth:=depth+1;
-  sInfo:=intersect(r);
+   sInfo:=sph.intersect(r);
   if sInfo.isHit=false then begin
     result:=ZeroVec;exit;
   end;

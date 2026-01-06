@@ -22,23 +22,23 @@ procedure InitScene;
 var
    p,c,e:Vec3;
 begin
-  sph:=TList.Create;
-  sph.add( SphereClass.Create(1e5, p.new( 1e5+1,40.8,81.6),  ZeroVec,c.new(0.75,0.25,0.25),DIFF) );//Left
-  sph.add( SphereClass.Create(1e5, p.new(-1e5+99,40.8,81.6), ZeroVec,c.new(0.25,0.25,0.75),DIFF) );//Right
-  sph.add( SphereClass.Create(1e5, p.new(50,40.8, 1e5),      ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Back
-  sph.add( SphereClass.Create(1e5, p.new(50,40.8,-1e5+170),  ZeroVec,c.new(0,0,0),      DIFF) );//Front
-  sph.add( SphereClass.Create(1e5, p.new(50, 1e5, 81.6),     ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Bottomm
-  sph.add( SphereClass.Create(1e5, p.new(50,-1e5+81.6,81.6), ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Top
-  sph.add( SphereClass.Create(16.5,p.new(27,16.5,47),        ZeroVec,c.new(1,1,1)*0.999, SPEC) );//Mirror
-  sph.add( SphereClass.Create(16.5,p.new(73,16.5,88),        ZeroVec,c.new(1,1,1)*0.999, REFR) );//Glass
-  sph.add( SphereClass.Create(600, p.new(50,681.6-0.27,81.6),e.new(12,12,12),    ZeroVec,DIFF) );//Ligth
+   sph:=ShapeListClass.create;
+   sph.add( SphereClass.Create(1e5, p.new( 1e5+1,40.8,81.6),  ZeroVec,c.new(0.75,0.25,0.25),DIFF) );//Left
+   sph.add( SphereClass.Create(1e5, p.new(-1e5+99,40.8,81.6), ZeroVec,c.new(0.25,0.25,0.75),DIFF) );//Right
+   sph.add( SphereClass.Create(1e5, p.new(50,40.8, 1e5),      ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Back
+   sph.add( SphereClass.Create(1e5, p.new(50,40.8,-1e5+170),  ZeroVec,c.new(0,0,0),      DIFF) );//Front
+   sph.add( SphereClass.Create(1e5, p.new(50, 1e5, 81.6),     ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Bottomm
+   sph.add( SphereClass.Create(1e5, p.new(50,-1e5+81.6,81.6), ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Top
+   sph.add( SphereClass.Create(16.5,p.new(27,16.5,47),        ZeroVec,c.new(1,1,1)*0.999, SPEC) );//Mirror
+   sph.add( SphereClass.Create(16.5,p.new(73,16.5,88),        ZeroVec,c.new(1,1,1)*0.999, REFR) );//Glass
+   sph.add( SphereClass.Create(600, p.new(50,681.6-0.27,81.6),e.new(12,12,12),    ZeroVec,DIFF) );//Ligth
 end;
 
 procedure InitNEScene;
 var
    p,c,e:Vec3;
 begin
-  sph:=TList.Create;
+   sph:=ShapeListClass.create;
   sph.add( SphereClass.Create(1e5, p.new( 1e5+1,40.8,81.6),  ZeroVec,c.new(0.75,0.25,0.25),DIFF) );//Left
   sph.add( SphereClass.Create(1e5, p.new(-1e5+99,40.8,81.6), ZeroVec,c.new(0.25,0.25,0.75),DIFF) );//Right
   sph.add( SphereClass.Create(1e5, p.new(50,40.8, 1e5),      ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Back
@@ -58,7 +58,7 @@ var
    RandomMatterial:real;
    p,c,e:Vec3;
 begin
-  sph:=TList.Create;
+   sph:=ShapeListClass.create;
   Cen.new(50,40.8,-860);
 
   Cen1.new(75,25, 85);
@@ -96,7 +96,7 @@ procedure SkyScene;
 var
    Cen,p,e,c:Vec3;
 begin
-  sph:=TList.Create;
+   sph:=ShapeListClass.create;
   Cen.new(50,40.8,-860);
 
   sph.add(SphereClass.Create(1600,      p.new(1,0,2)*3000,   e.new(1,0.9,0.8)*1.2e1*1.56*2,  ZeroVec, DIFF)); // sun
@@ -116,7 +116,7 @@ procedure ForestScene;
 var
    tc,scc,p,e,c:Vec3;
 begin
-  sph:=TList.Create;
+   sph:=ShapeListClass.create;
 
   tc:=tc.new(0.0588, 0.361, 0.0941);
   scc:=scc.new(1,1,1)*0.7;
@@ -145,7 +145,7 @@ var
    R,T,D,Z:real;
    p,c,e:Vec3;
 begin
-  sph:=TList.Create;
+   sph:=ShapeListClass.create;
 
   R:=60;
   //double R=120;
@@ -168,7 +168,7 @@ var
    p,c,e:Vec3;
    Cen:Vec3;
 begin
-   sph:=TList.Create;
+   sph:=ShapeListClass.create;
    Cen.new(50,-20,-860);
    Sph.add(SphereClass.Create(160, Cen+p.new(0, 600, -500),e.new(1,1,1)*2e2, ZeroVec,  DIFF)); // sun
    Sph.add(SphereClass.Create(800, Cen+p.new(0,-880,-9120),e.new(1,1,1)*2e1, ZeroVec,  DIFF)); // horizon
@@ -183,7 +183,7 @@ procedure RectLightScene;
 var
    p,c,e:Vec3;
 begin
-  sph:=TList.Create;
+   sph:=ShapeListClass.create;
   sph.add( RectClass.Create(YZ, 0, 81.6, 0, 170, p.new( 1,0,0),    ZeroVec,c.new(0.75,0.25,0.25),DIFF) );//Left
   sph.add( RectClass.Create(YZ, 0, 81.6, 0, 170, p.new(99,0,0),    ZeroVec,c.new(0.25,0.25,0.75),DIFF) );//Right
   sph.add( RectClass.Create(XY, 1,   99, 0,81.6, p.new( 1,0,0),    ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Back
@@ -205,7 +205,7 @@ var
    RandomMatterial:real;
    p,c,e:Vec3;
 begin
-  sph:=TList.Create;
+   sph:=ShapeListClass.create;
   Cen.new(50,40.8,-860);
 
   a:=15;b:=0.15;theta:=pi/6;

@@ -1,4 +1,4 @@
-﻿program sppthread;    
+program sppthread;    
 {$mode objfpc}
 {$modeswitch advancedrecords}
 
