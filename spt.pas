@@ -1,4 +1,4 @@
-program sppthread;    
+﻿program sppthread;    
 {$mode objfpc}
 {$modeswitch advancedrecords}
 
@@ -6,7 +6,7 @@ uses
   {$ifdef unix}
   cthreads,cmem,
   {$endif}
-  SysUtils,Classes,Math,uVect,uBMP,getopts,uShape,uScene;
+  SysUtils,Classes,Math,uVect,uBMP,getopts,uShape,uRadiance;
 
 const
    MaxThread=32;
@@ -139,6 +139,7 @@ begin
    modelnum:=0;
    FN:='temp.bmp';
    w:=640 ;h:=480;  samps := 16;
+   sc:=SceneClass.create;
    c:=#0;
    repeat
      c:=getopt('m:o:s:t:w:');
@@ -186,31 +187,32 @@ begin
   writeln('threads=',threadnum);
   writeln('output=',FN);
   BMP.new(w,h);
+  sc:=SceneClass.create;
   Randomize;
   cam.new(camPosition.new(50, 52, 295.6),camDirection.new(0, -0.042612, -1).norm,w,h,samps );
   case modelnum of
      10:begin
-          SpiralScene;
+          sc.SpiralScene;
           cam.new(camPosition.new(0,300,400),
                   camDirection.new(0,-300,-400).norm,
                   w,h,samps);
           cam.PlaneDist:=70;
         end;
-     7:RectLightScene;
-     6:IslandScene;
+     7:sc.RectLightScene;
+     6:sc.IslandScene;
      5:begin
-          RandomScene;
+          sc.RandomScene;
           cam.new(camPosition.new(55,40,295.6),
                   camDirection.new(0,-0.12,-1).norm,
                   w,h,samps);
           cam.PlaneDist:=70;
        end;
-     4:WadaScene;
-     3:ForestScene;
-     2:SkyScene;
-     1:InitNEScene;
+     4:sc.WadaScene;
+     3:sc.ForestScene;
+     2:sc.SkyScene;
+     1:sc.InitNEScene;
      else begin
-        InitScene;
+        sc.InitScene;
      end;
   end;(*case*)
 

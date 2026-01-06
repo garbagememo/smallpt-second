@@ -12,11 +12,10 @@ const
 type
    ShapeClass=class;
    
-   SurfaceInfo=record
+   HitInfo=record
       isHit:boolean;
       t:real;
-      x,n,nl:Vec3;
-      obj:ShapeClass;
+      id:integer;//本来オブジェクトにしたいが・・・
    end;
       
    AABBRecord=record
@@ -56,13 +55,9 @@ type
       shapes:TList;
       constructor create;
       procedure add(s : ShapeClass);
-      function intersect(const r: RayRecord):SurfaceInfo;
+      function intersect(const r: RayRecord):HitInfo;
    end;
    
-function radiance(const r:RayRecord;depth:integer):Vec3;
-
-var
-   sph:ShapeListClass;
 
 
 
@@ -248,12 +243,11 @@ begin
    Shapes.add(s);
 end;
 
-function ShapeListClass.intersect(const r:RayRecord):SurfaceInfo;
+function ShapeListClass.intersect(const r:RayRecord):HitInfo;
 var 
   x,n,nl:Vec3;
   t,d:real;
   i,id:integer;
-
 begin
   result.isHit:=false;
   result.t:=INF;
@@ -269,35 +263,8 @@ begin
   result.isHit:=(t<inf);
   if result.isHit then begin
      result.t:=t;
-     result.x:=r.o+r.d*t;
-     result.obj:=ShapeClass(Shapes[id]);
-     result.n:=result.obj.GetNorm(result.x);
-     if result.n.dot(r.d)<0 then result.nl:=result.n else result.nl:=result.n*-1;
+     result.id:=id;
   end;
-end;
-
-function radiance(const r:RayRecord;depth:integer):Vec3;
-var
-  f,d:Vec3;
-  p:real;
-  sInfo:SurfaceInfo;
-  tInfo:TraceInfo;
-begin
-  depth:=depth+1;
-   sInfo:=sph.intersect(r);
-  if sInfo.isHit=false then begin
-    result:=ZeroVec;exit;
-  end;
-  f:=sInfo.obj.c;
-  p:=Max(f.x,Max(f.y,f.z));
-  if (depth>5) then begin
-    if random<p then 
-      f:=f/p 
-    else
-      Exit(sInfo.obj.e);
-  end;
-  tInfo:=sInfo.obj.m.GetRay(r,sInfo.x,sInfo.n,sInfo.nl);
-  result:=sInfo.obj.e+f.Mult(radiance(tInfo.r,depth))*tInfo.cpc;
 end;
 
 begin
