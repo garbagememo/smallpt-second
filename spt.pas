@@ -1,4 +1,4 @@
-﻿program sppthread;    
+program sppthread;    
 {$mode objfpc}
 {$modeswitch advancedrecords}
 
@@ -100,7 +100,7 @@ end;
           for sx := 0 to 1 do begin
              r:=ZeroVec;
              for s := 0 to cam.samps - 1 do begin
-               r:= r+radiance(cam.GetRay(x,y,sx,sy), 0)/ cam.samps;
+               r:= r+Radiance(cam.GetRay(x,y,sx,sy), 0)/ cam.samps;
              end;(*samps*)
              tColor:=tColor+ ClampVector(r)* 0.25;
           end;(*sx*)
@@ -139,7 +139,6 @@ begin
    modelnum:=0;
    FN:='temp.bmp';
    w:=640 ;h:=480;  samps := 16;
-   sc:=SceneClass.create;
    c:=#0;
    repeat
      c:=getopt('m:o:s:t:w:');
@@ -188,9 +187,17 @@ begin
   writeln('output=',FN);
   BMP.new(w,h);
   sc:=SceneClass.create;
+  
   Randomize;
   cam.new(camPosition.new(50, 52, 295.6),camDirection.new(0, -0.042612, -1).norm,w,h,samps );
   case modelnum of
+     20:begin
+          sc.bvhRandomScene;
+          cam.new(camPosition.new(55,40,295.6),
+                  camDirection.new(0,-0.12,-1).norm,
+                  w,h,samps);
+          cam.PlaneDist:=70;
+     end;
      10:begin
           sc.SpiralScene;
           cam.new(camPosition.new(0,300,400),

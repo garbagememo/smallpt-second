@@ -4,7 +4,7 @@
 {$modeswitch advancedrecords}
 
 interface
-uses uVect,uDetector,Math,Classes;
+uses uVect,uShape,Math,Classes;
 const
   Nil_Leaf=16384;
 type
@@ -15,26 +15,26 @@ type
     left,right:BVHNodeClass;
     leaf:integer;
     constructor Create(ary:IntegerArray;sph:TList);
-    function intersect(r:RayRecord):InterRecord;
+    function intersect(r:RayRecord;sph:TList):HitInfo;
   end;
 
-procedure AABBSort(var a: array of integer);
+procedure AABBSort(var a: array of integer;sph:TList);
    
 implementation
 
 
-function GetAABBVal(suf:integer;axis:integer):real;
+function GetAABBVal(suf:integer;axis:integer;sph:TList):real;
 begin
   case axis of
-    1:result:=DetectorClass(sph[suf]).BoundBox.min.x;
-    2:result:=DetectorClass(sph[suf]).BoundBox.min.y;
+    1:result:=ShapeClass(sph[suf]).BoundBox.min.x;
+    2:result:=ShapeClass(sph[suf]).BoundBox.min.y;
     else begin
-      result:=DetectorClass(sph[suf]).BoundBox.min.z;
+      result:=ShapeClass(sph[suf]).BoundBox.min.z;
     end;
   end ;(*case*)
 end;
 
-procedure AABBSort(var a: array of integer);//バブルソート
+procedure AABBSort(var a: array of integer;sph:TList);//バブルソート
 var
    i, j, h,axis: integer;
    ar:real;
@@ -43,7 +43,7 @@ begin
    if ar<0.33 then axis:=1 else if ar<0.67 then axis:=2 else axis:=3;
    for i := 0 to High(a) do begin
        for j := 1 to High(a) - i  do begin
-           if GetAABBVal(a[j],axis) < GetAABBVal(a[j-1],axis) then begin
+           if GetAABBVal(a[j],axis,sph) < GetAABBVal(a[j-1],axis,sph) then begin
              h:=a[j-1];a[j-1]:=a[j];a[j]:=h;
          end;
        end;
@@ -55,14 +55,14 @@ var
    upAry,DownAry:IntegerArray;
    i,len:integer;
 begin
-   AABBSort(ary);
+   AABBSort(ary,sph);
    Leaf:=Nil_Leaf;
-   root:=Detectorclass(sph[ary[0]]).BoundBox;
+   root:=ShapeClass(sph[ary[0]]).BoundBox;
     
   case High(Ary) of
     0:Leaf:=ary[0];//要素1
     1:begin
-       Root:=Root.MargeBoundBox(DetectorClass(sph[ary[1] ]).BoundBox);
+       Root:=Root.MargeBoundBox(ShapeClass(sph[ary[1] ]).BoundBox);
        setLength(UpAry,1);
        SetLength(downAry,1);
        upAry[0]:=Ary[0];
@@ -85,16 +85,16 @@ begin
 end;
 
 
-function BVHnodeClass.intersect(r:RayRecord):InterRecord;
+function BVHnodeClass.intersect(r:RayRecord;sph:TList):HitInfo;
 var
-   RIR,LIR:InterRecord;
+   RIR,LIR:HitInfo;
    t:real;
 begin
   result.isHit:=false;
   result.t:=INF;
   result.id:=0;
   if leaf<>Nil_Leaf then begin
-    result.t:=DetectorClass(sph[leaf]).intersect(r);
+    result.t:=ShapeClass(sph[leaf]).intersect(r);
     if result.t<INF then begin
       result.id:=Leaf;
       result.isHit:=true;
@@ -103,8 +103,8 @@ begin
   end;
 
   if root.Hit(r,EPS,INF) then begin
-     RIR:=Right.intersect(r);
-     LIR:=Left.intersect(r);
+     RIR:=Right.intersect(r,sph);
+     LIR:=Left.intersect(r,sph);
      if (LIR.isHit or RIR.isHit) then begin
         if RIR.isHit then result:=RIR;
         if LIR.isHit then begin
