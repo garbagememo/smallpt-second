@@ -1,4 +1,4 @@
-program sppthread;    
+﻿program sppthread;    
 {$mode objfpc}
 {$modeswitch advancedrecords}
 
@@ -100,7 +100,7 @@ end;
           for sx := 0 to 1 do begin
              r:=ZeroVec;
              for s := 0 to cam.samps - 1 do begin
-               r:= r+Radiance(cam.GetRay(x,y,sx,sy), 0)/ cam.samps;
+               r:= r+sc.Radiance(cam.GetRay(x,y,sx,sy), 0)/ cam.samps;
              end;(*samps*)
              tColor:=tColor+ ClampVector(r)* 0.25;
           end;(*sx*)
@@ -186,7 +186,7 @@ begin
   writeln('threads=',threadnum);
   writeln('output=',FN);
   BMP.new(w,h);
-  sc:=SceneClass.create;
+  sc.new;
   
   Randomize;
   cam.new(camPosition.new(50, 52, 295.6),camDirection.new(0, -0.042612, -1).norm,w,h,samps );

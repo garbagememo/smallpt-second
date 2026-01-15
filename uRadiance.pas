@@ -7,9 +7,24 @@ interface
 uses SysUtils,Classes,uVect,uBMP,Math,getopts,uMaterial,uShape,uBVH;
 
 type 
-   SceneClass = class
-      scList:TList;//List of SceneListClass
+   ShapeListClass=Class
+      shapes:TList;
       constructor create;
+      procedure add(s : ShapeClass);
+      function intersect(const r: RayRecord):HitInfo;virtual;
+      function GetObj(id:integer):ShapeClass;virtual;
+   end;
+   
+   BVHSceneClass = class(ShapeListClass)
+      bvh:BVHNodeClass;
+      function intersect(const r:RayRecord):HitInfo;override;
+      procedure MakeBVHNode;
+   end;
+   
+
+   SceneRecord = record
+      scList:TList;//List of SceneListClass
+      procedure new;
       procedure InitScene;
       procedure InitNEScene;
       procedure SkyScene;
@@ -20,21 +35,53 @@ type
       procedure IslandScene;
       procedure RectLightScene;
       procedure BVHRandomScene;
+      function Radiance(const r:RayRecord;depth:integer):Vec3;
    end;
 
-   BVHSceneClass = class(ShapeListClass)
-      bvh:BVHNodeClass;
-      function intersect(const r:RayRecord):HitInfo;override;
-      procedure MakeBVHNode;
-   end;
-   
-   function Radiance(const r:RayRecord;depth:integer):Vec3;
+
+
 
    var
-      sph:ShapeListClass;
-      bvh:BVHSceneClass;
-      sc:SceneClass;
+      sc:SceneRecord;
 implementation
+
+constructor ShapeListClass.create;
+begin
+   Shapes:=TList.Create;
+end;
+procedure ShapeListClass.add(s: ShapeClass);
+begin
+   Shapes.add(s);
+end;
+
+function ShapeListClass.intersect(const r:RayRecord):HitInfo;
+var 
+  x,n,nl:Vec3;
+  t,d:real;
+  i,id:integer;
+begin
+   result.isHit:=false;
+   result.t:=INF;
+   t:=INF;
+   id:=Shapes.count-1;
+   for i:=0 to Shapes.count-1 do begin
+      d:=ShapeClass(Shapes[i]).intersect(r);
+      if d<t then begin
+         t:=d;
+         id:=i;
+      end;
+   end;
+   result.isHit:=(t<inf);
+   if result.isHit then begin
+      result.t:=t;
+      result.id:=id;
+   end;
+end;
+
+function ShapeListClass.GetObj(id:integer):ShapeClass;
+begin
+   result:=ShapeClass(shapes[id]);
+end;
 
 
 function BVHSceneClass.intersect(const r:RayRecord):HitInfo;
@@ -55,12 +102,12 @@ begin
    bvh:=BVHNodeClass.Create(ary,shapes);
 end;
 
-constructor SceneClass.create;
+procedure SceneRecord.new;
 begin
    scList:=TList.create;
 end;
 
-function Radiance(const r:RayRecord;depth:integer):Vec3;
+function SceneRecord.Radiance(const r:RayRecord;depth:integer):Vec3;
 var
    f,d,x,n,nl:Vec3;
    p:real;
@@ -100,9 +147,10 @@ begin
 end;
 
 
-procedure SceneClass.InitScene;
+procedure SceneRecord.InitScene;
 var
    p,c,e:Vec3;
+   sph:ShapeListClass;
 begin
    sph:=ShapeListClass.create;
    sph.add( SphereClass.Create(1e5, p.new( 1e5+1,40.8,81.6),  ZeroVec,c.new(0.75,0.25,0.25),DIFF) );//Left
@@ -117,9 +165,10 @@ begin
    scList.add(sph);
 end;
 
-procedure SceneClass.InitNEScene;
+procedure SceneRecord.InitNEScene;
 var
    p,c,e:Vec3;
+   sph:ShapeListClass;
 begin
    sph:=ShapeListClass.create;
   sph.add( SphereClass.Create(1e5, p.new( 1e5+1,40.8,81.6),  ZeroVec,c.new(0.75,0.25,0.25),DIFF) );//Left
@@ -135,12 +184,13 @@ begin
 
 end;
 
-procedure SceneClass.RandomScene;
+procedure SceneRecord.RandomScene;
 var
    Cen,Cen1,Cen2,Cen3:Vec3;
    a,b:integer;
    RandomMatterial:real;
    p,c,e:Vec3;
+   sph:ShapeListClass;
 begin
    sph:=ShapeListClass.create;
    Cen.new(50,40.8,-860);
@@ -177,9 +227,10 @@ begin
    scList.add(sph);
 end;
 
-procedure SceneClass.SkyScene;
+procedure SceneRecord.SkyScene;
 var
    Cen,p,e,c:Vec3;
+   sph:ShapeListClass;
 begin
    sph:=ShapeListClass.create;
    Cen.new(50,40.8,-860);
@@ -198,9 +249,10 @@ begin
    scList.add(sph);
 end;
 
-procedure SceneClass.ForestScene;
+procedure SceneRecord.ForestScene;
 var
    tc,scc,p,e,c:Vec3;
+   sph:ShapeListClass;
 begin
    sph:=ShapeListClass.create;
 
@@ -227,10 +279,11 @@ begin
 
 end;
 
-procedure SceneClass.wadaScene;
+procedure SceneRecord.wadaScene;
 var
    R,T,D,Z:real;
    p,c,e:Vec3;
+   sph:ShapeListClass;
 begin
    sph:=ShapeListClass.create;
 
@@ -251,10 +304,11 @@ begin
    scList.add(sph);
 end;
 
-procedure SceneClass.IslandScene;
+procedure SceneRecord.IslandScene;
 var
    p,c,e:Vec3;
    Cen:Vec3;
+   sph:ShapeListClass;
 begin
    sph:=ShapeListClass.create;
    Cen.new(50,-20,-860);
@@ -268,25 +322,26 @@ begin
    scList.add(sph);
 end;
 
-procedure SceneClass.RectLightScene;
+procedure SceneRecord.RectLightScene;
 var
    p,c,e:Vec3;
+   sph:ShapeListClass;
 begin
    sph:=ShapeListClass.create;
-  sph.add( RectClass.Create(YZ, 0, 81.6, 0, 170, p.new( 1,0,0),    ZeroVec,c.new(0.75,0.25,0.25),DIFF) );//Left
-  sph.add( RectClass.Create(YZ, 0, 81.6, 0, 170, p.new(99,0,0),    ZeroVec,c.new(0.25,0.25,0.75),DIFF) );//Right
-  sph.add( RectClass.Create(XY, 1,   99, 0,81.6, p.new( 1,0,0),    ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Back
-  sph.add( RectClass.Create(XY, 1,   99, 0,81.6, p.new( 1,0,170),  ZeroVec,c.new(0,0,0),      DIFF) );//Front
-  sph.add( RectClass.Create(XZ, 1,   99, 0,170,  p.new( 1,0,0),    ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Bottomm
-  sph.add( RectClass.Create(XZ, 1,   99, 0,170,  p.new( 1,81.6,0), ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Top
-  sph.add( SphereClass.Create(16.5,p.new(27,16.5,47),        ZeroVec,c.new(1,1,1)*0.999, SPEC) );//Mirror
-  sph.add( SphereClass.Create(16.5,p.new(73,16.5,88),        ZeroVec,c.new(1,1,1)*0.999, REFR) );//Glass
-  sph.add( RectClass.Create(XZ,40,60,70,90,p.new(50,70,80),  e.new(4,4,4)*3,   ZeroVec,  DIFF)  );//Ligth
+   sph.add( RectClass.Create(YZ, 0, 81.6, 0, 170, p.new( 1,0,0),    ZeroVec,c.new(0.75,0.25,0.25),DIFF) );//Left
+   sph.add( RectClass.Create(YZ, 0, 81.6, 0, 170, p.new(99,0,0),    ZeroVec,c.new(0.25,0.25,0.75),DIFF) );//Right
+   sph.add( RectClass.Create(XY, 1,   99, 0,81.6, p.new( 1,0,0),    ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Back
+   sph.add( RectClass.Create(XY, 1,   99, 0,81.6, p.new( 1,0,170),  ZeroVec,c.new(0,0,0),      DIFF) );//Front
+   sph.add( RectClass.Create(XZ, 1,   99, 0,170,  p.new( 1,0,0),    ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Bottomm
+   sph.add( RectClass.Create(XZ, 1,   99, 0,170,  p.new( 1,81.6,0), ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Top
+   sph.add( SphereClass.Create(16.5,p.new(27,16.5,47),        ZeroVec,c.new(1,1,1)*0.999, SPEC) );//Mirror
+   sph.add( SphereClass.Create(16.5,p.new(73,16.5,88),        ZeroVec,c.new(1,1,1)*0.999, REFR) );//Glass
+   sph.add( RectClass.Create(XZ,40,60,70,90,p.new(50,70,80),  e.new(4,4,4)*3,   ZeroVec,  DIFF)  );//Ligth
    scList.add(sph);
 end;
 
 
-procedure SceneClass.SpiralScene;
+procedure SceneRecord.SpiralScene;
 var
    Cen,Cen1,Cen2,Cen3:Vec3;
    n:integer;
@@ -294,32 +349,35 @@ var
    a,b:real;
    RandomMatterial:real;
    p,c,e:Vec3;
+   sph:ShapeListClass;
 begin
    sph:=ShapeListClass.create;
-  Cen.new(50,40.8,-860);
+   Cen.new(50,40.8,-860);
 
-  a:=15;b:=0.15;theta:=pi/6;
-  Cen2.new(0,0,0);
+   a:=15;b:=0.15;theta:=pi/6;
+   Cen2.new(0,0,0);
 
-  sph.add(SphereClass.Create(10000,Cen+p.new(0,0,-200), e.new(0.6, 0.5, 0.7)*0.8, c.new(0.7,0.9,1.0),  DIFF)); // sky
-  sph.add(SphereClass.Create(100000, p.new(50, -100000, 0), ZeroVec, c.new(0.4,0.4,0.4),  DIFF)); // grnd
+   sph.add(SphereClass.Create(10000,Cen+p.new(0,0,-200), e.new(0.6, 0.5, 0.7)*0.8, c.new(0.7,0.9,1.0),  DIFF)); // sky
+   sph.add(SphereClass.Create(100000, p.new(50, -100000, 0), ZeroVec, c.new(0.4,0.4,0.4),  DIFF)); // grnd
 
-  for n:=0 to 18 do begin
-     theta:=pi/6*(3+n);
-     r:=a*Exp(b*theta);
-     cen1:=cen2+cen1.new(r*cos(theta),5,r*sin(-theta) );//zは手前が＋なのでマイナスしないといけない
-     sph.add(SphereClass.Create(5,Cen1,ZeroVec,c.new(random,Random,random),DIFF));
-  end;
+   for n:=0 to 18 do begin
+      theta:=pi/6*(3+n);
+      r:=a*Exp(b*theta);
+      cen1:=cen2+cen1.new(r*cos(theta),5,r*sin(-theta) );//zは手前が＋なのでマイナスしないといけない
+      sph.add(SphereClass.Create(5,Cen1,ZeroVec,c.new(random,Random,random),DIFF));
+   end;
 
-  scList.add(sph);
+   scList.add(sph);
 end;
 
-procedure SceneClass.BVHRandomScene;
+procedure SceneRecord.BVHRandomScene;
 var
    Cen,Cen1,Cen2,Cen3:Vec3;
    a,b:integer;
    RandomMatterial:real;
    p,c,e:Vec3;
+   sph:ShapeListClass;
+   bvh:BVHSceneClass;
 begin
    sph:=ShapeListClass.create;
    Cen.new(50,40.8,-860);

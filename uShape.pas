@@ -52,17 +52,6 @@ type
       function GetNorm(x:Vec3):Vec3;override;
    end;
 
-   ShapeListClass=Class
-      shapes:TList;
-      constructor create;
-      procedure add(s : ShapeClass);
-      function intersect(const r: RayRecord):HitInfo;virtual;
-      function GetObj(id:integer):ShapeClass;virtual;
-   end;
-   
-
-
-
 implementation
 function AABBRecord.MargeBoundBox(box1:AABBRecord):AABBRecord;
 var
@@ -234,44 +223,6 @@ end;
 function RectClass.GetNorm(x:Vec3):Vec3;
 begin
   result:=nl;
-end;
-
-constructor ShapeListClass.create;
-begin
-   Shapes:=TList.Create;
-end;
-procedure ShapeListClass.add(s: ShapeClass);
-begin
-   Shapes.add(s);
-end;
-
-function ShapeListClass.intersect(const r:RayRecord):HitInfo;
-var 
-  x,n,nl:Vec3;
-  t,d:real;
-  i,id:integer;
-begin
-   result.isHit:=false;
-   result.t:=INF;
-   t:=INF;
-   id:=Shapes.count-1;
-   for i:=0 to Shapes.count-1 do begin
-      d:=ShapeClass(Shapes[i]).intersect(r);
-      if d<t then begin
-         t:=d;
-         id:=i;
-      end;
-   end;
-   result.isHit:=(t<inf);
-   if result.isHit then begin
-      result.t:=t;
-      result.id:=id;
-   end;
-end;
-
-function ShapeListClass.GetObj(id:integer):ShapeClass;
-begin
-   result:=ShapeClass(shapes[id]);
 end;
 
 begin
