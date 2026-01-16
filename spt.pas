@@ -87,181 +87,189 @@ begin
 end;
 
   
-  procedure TMyThread.Execute;
-  var
-     x,sx,sy,s:integer;
-     r,tColor:Vec3;
-  begin
-    while y<hight do begin
+procedure TMyThread.Execute;
+var
+   x,sx,sy,s:integer;
+   r,tColor:Vec3;
+begin
+   while y<hight do begin
       if y mod 10 =0 then writeln('y=',y);
       for x := 0 to wide - 1 do begin
-        tColor:=ZeroVec;
-        for sy := 0 to 1 do begin
-          for sx := 0 to 1 do begin
-             r:=ZeroVec;
-             for s := 0 to cam.samps - 1 do begin
-               r:= r+sc.Radiance(cam.GetRay(x,y,sx,sy), 0)/ cam.samps;
-             end;(*samps*)
-             tColor:=tColor+ ClampVector(r)* 0.25;
-          end;(*sx*)
-        end;(*sy*)
-        Line[x]:=ColToRGB(tColor);
+         tColor:=ZeroVec;
+         for sy := 0 to 1 do begin
+            for sx := 0 to 1 do begin
+               r:=ZeroVec;
+               for s := 0 to cam.samps - 1 do begin
+                  r:= r+sc.Radiance(cam.GetRay(x,y,sx,sy), 0)/ cam.samps;
+               end;(*samps*)
+               tColor:=tColor+ ClampVector(r)* 0.25;
+            end;(*sx*)
+         end;(*sy*)
+         Line[x]:=ColToRGB(tColor);
       end;(* for x *)
       Synchronize(@AddAxis);
-     end;(*for y*)
-  end;
+   end;(*for y*)
+end;
 
-  procedure TMyThread.AddAxis;
-  var
-     j:integer;
-     yAxis:integer;
-  begin
-     yAxis:=hight-y-1;
-     for j:=0 to wide-1 do BMP.SetPixel(j,yAxis,line[j]);
-     y:=y+yInc;
-  end;
+procedure TMyThread.AddAxis;
+var
+   j:integer;
+   yAxis:integer;
+begin
+   yAxis:=hight-y-1;
+   for j:=0 to wide-1 do BMP.SetPixel(j,yAxis,line[j]);
+   y:=y+yInc;
+end;
   
   
 var
-  i: integer;
-  w,h,samps: integer;
-  modelnum,threadnum:integer;
-  camPosition,camDirection : Vec3;
-  cam:CamRecord;
-  ArgInt:integer;
-  FN,ArgFN:string;
-  c:char;
-  StarTime:TDateTime;
+   i: integer;
+   w,h,samps: integer;
+   modelnum,threadnum:integer;
+   camPosition,camDirection : Vec3;
+   cam:CamRecord;
+   AspectFlag:boolean;//trueの場合16:9
+   ArgInt:integer;
+   FN,ArgFN:string;
+   c:char;
+   StarTime:TDateTime;
 var
-  ThreadAry:array[0..MaxThread-1] of TMyThread;
+   ThreadAry:array[0..MaxThread-1] of TMyThread;
 begin
    ThreadNum:=8;
    modelnum:=0;
-   FN:='temp.bmp';
-   w:=640 ;h:=480;
-   //w:=960;h:=540;
+   FN:='out.png';
+   //w:=640 ;h:=480;
+   w:=1920;h:=1080;
    samps := 16;
+   AspectFlag:=false;
    c:=#0;
    repeat
-     c:=getopt('m:o:s:t:w:');
-     case c of
-       'm' : begin
-          ArgInt:=StrToInt(OptArg);
-          modelnum:=ArgInt;
-          writeln ('model number=',ModelNum);
-       end;
-       'o' : begin
-          ArgFN:=OptArg;
-          if ArgFN<>'' then FN:=ArgFN;
-          writeln ('Output FileName =',FN);
-       end;
-       's' : begin
-         ArgInt:=StrToInt(OptArg);
-         samps:=ArgInt;
-         writeln('samples =',ArgInt);
-       end;
-       't' : begin
-         ArgInt:=StrToInt(OptArg);
-         ThreadNum:=ArgInt;
-         if ThreadNum>=MaxThread then Threadnum:=MaxThread;
-         writeln('Thread Number =',ThreadNum);
-       end;
-      'w' : begin
-         ArgInt:=StrToInt(OptArg);
-         w:=ArgInt;h:=w *3 div 4;
-         writeln('w=',w,' ,h=',h);
-      end;
-      '?',':' : begin
-         writeln(' -m [0..5] scene number');
-         writeln(' -o [finename] output filename');
-         writeln(' -s [samps] sampling count');
-         writeln(' -t [thread num]');
-         writeln(' -w [width] screen width pixel');
-         halt;
-      end;
-    end; { case }
-  until c=endofoptions;
+      c:=getopt('am:o:s:t:w:');
+      case c of
+         'a':begin
+                AspectFlag:=true;
+             end;
+         'm' : begin
+                  ArgInt:=StrToInt(OptArg);
+                  modelnum:=ArgInt;
+                  writeln ('model number=',ModelNum);
+               end;
+         'o' : begin
+                  ArgFN:=OptArg;
+                  if ArgFN<>'' then FN:=ArgFN;
+                  writeln ('Output FileName =',FN);
+               end;
+         's' : begin
+                  ArgInt:=StrToInt(OptArg);
+                  samps:=ArgInt;
+                  writeln('samples =',ArgInt);
+               end;
+         't' : begin
+                  ArgInt:=StrToInt(OptArg);
+                  ThreadNum:=ArgInt;
+                  if ThreadNum>=MaxThread then Threadnum:=MaxThread;
+                  writeln('Thread Number =',ThreadNum);
+               end;
+         'w' : begin
+                  ArgInt:=StrToInt(OptArg);
+                  w:=ArgInt;h:=w *3 div 4;
+                  writeln('w=',w,' ,h=',h);
+               end;
+         '?',':' : begin
+                      writeln(' -m [0..5] scene number');
+                      writeln(' -o [finename] output filename');
+                      writeln(' -s [samps] sampling count');
+                      writeln(' -t [thread num]');
+                      writeln(' -w [width] screen width pixel');
+                      halt;
+                   end;
+      end; { case }
+   until c=endofoptions;
 
-  writeln('samps=',samps);
-  writeln('size=',w,'x',h);
-  writeln('model=',modelnum);
-  writeln('threads=',threadnum);
-  writeln('output=',FN);
-  BMP.new(w,h);
-  sc.new;
-  
-  Randomize;
-  cam.new(camPosition.new(50, 52, 295.6),camDirection.new(0, -0.042612, -1).norm,w,h,samps );
-  case modelnum of
-     20:begin
-          sc.bvhRandomScene;
-          cam.new(camPosition.new(55,40,295.6),
-                  camDirection.new(0,-0.12,-1).norm,
-                  w,h,samps);
-          cam.PlaneDist:=70;
-        end;
-     11:begin
-           sc.EvenlySpiralScene;
-           cam.new(camPosition.new(-10,150,220),
-                   camDirection.new(0,-150,-200).norm,
+   if AspectFlag then begin
+      h:=w*9 div 16;
+   end;
+   writeln('samps=',samps);
+   writeln('size=',w,'x',h);
+   writeln('model=',modelnum);
+   writeln('threads=',threadnum);
+   writeln('output=',FN);
+   BMP.new(w,h);
+   sc.new;
+   
+   Randomize;
+   cam.new(camPosition.new(50, 52, 295.6),camDirection.new(0, -0.042612, -1).norm,w,h,samps );
+   case modelnum of
+      20:begin
+            sc.bvhRandomScene;
+            cam.new(camPosition.new(55,40,295.6),
+                    camDirection.new(0,-0.12,-1).norm,
+                    w,h,samps);
+            cam.PlaneDist:=70;
+         end;
+      11:begin
+            sc.EvenlySpiralScene;
+            cam.new(camPosition.new(-10,150,220),
+                    camDirection.new(0,-150,-200).norm,
+                    w,h,samps);
+            cam.PlaneDist:=70;
+         end;
+      10:begin
+            sc.SpiralScene;
+            cam.new(camPosition.new(0,300,400),
+                    camDirection.new(0,-300,-400).norm,
+                    w,h,samps);
+            cam.PlaneDist:=70;
+         end;
+      7:sc.RectLightScene;
+      6:sc.IslandScene;
+      5:begin
+           sc.RandomScene;
+           cam.new(camPosition.new(55,40,295.6),
+                   camDirection.new(0,-0.12,-1).norm,
                    w,h,samps);
            cam.PlaneDist:=70;
         end;
-     10:begin
-          sc.SpiralScene;
-          cam.new(camPosition.new(0,300,400),
-                  camDirection.new(0,-300,-400).norm,
-                  w,h,samps);
-          cam.PlaneDist:=70;
-        end;
-     7:sc.RectLightScene;
-     6:sc.IslandScene;
-     5:begin
-          sc.RandomScene;
-          cam.new(camPosition.new(55,40,295.6),
-                  camDirection.new(0,-0.12,-1).norm,
-                  w,h,samps);
-          cam.PlaneDist:=70;
-       end;
-     4:sc.WadaScene;
-     3:sc.ForestScene;
-     2:sc.SkyScene;
-     1:sc.InitNEScene;
-     else begin
+      4:sc.WadaScene;
+      3:sc.ForestScene;
+      2:sc.SkyScene;
+      1:sc.InitNEScene;
+      else begin
         sc.InitScene;
-     end;
-  end;(*case*)
+      end;
+   end;(*case*)
 
-  writeln ('The time is : ',TimeToStr(Time));
-  StarTime:=Time; 
-  BMP.new(cam.w,cam.h);
-  for i:=0 to ThreadNum-1 do begin
-     ThreadAry[i]:=TMyThread.Create(true);
-     ThreadAry[i].FreeOnTerminate:=false;
-     //falseにしないとスレッドが休止時の後始末ができない。
-     ThreadAry[i].y:=i;
-     ThreadAry[i].wide:=cam.w;
-     ThreadAry[i].hight:=cam.h;
-     ThreadAry[i].cam:=cam;
-     ThreadAry[i].samps:=samps;
-     ThreadAry[i].yInc:=ThreadNum;
-  end;
-  writeln('Setup!');
-  
-  for i:=0 to ThreadNum-1 do begin
-    ThreadAry[i].Start;
-  end;
-  //このルーチンが別途で無いとマルチスレッドにならない
-  for i:=0 to ThreadNum-1 do begin
-    ThreadAry[i].WaitFor;
-  end;
-  writeln('The time is : ',TimeToStr(Time));
-  writeln('Calcurate time is=',TimeToStr(Time-StarTime));
-  if UpperCase(ExtractFileExt(FN))='.BMP' then
-    BMP.WriteBMPFile(FN)
-  else if UpperCase(ExtractFileExt(FN))='.PNG' then
-    BMP.WritePNG(FN)
-  else
-    BMP.WritePPM(FN);
+   writeln ('The time is : ',TimeToStr(Time));
+   StarTime:=Time; 
+   BMP.new(cam.w,cam.h);
+   for i:=0 to ThreadNum-1 do begin
+      ThreadAry[i]:=TMyThread.Create(true);
+      ThreadAry[i].FreeOnTerminate:=false;
+      //falseにしないとスレッドが休止時の後始末ができない。
+      ThreadAry[i].y:=i;
+      ThreadAry[i].wide:=cam.w;
+      ThreadAry[i].hight:=cam.h;
+      ThreadAry[i].cam:=cam;
+      ThreadAry[i].samps:=samps;
+      ThreadAry[i].yInc:=ThreadNum;
+   end;
+   writeln('Setup!');
+   
+   for i:=0 to ThreadNum-1 do begin
+      ThreadAry[i].Start;
+   end;
+   //このルーチンが別途で無いとマルチスレッドにならない
+   for i:=0 to ThreadNum-1 do begin
+      ThreadAry[i].WaitFor;
+   end;
+   writeln('The time is : ',TimeToStr(Time));
+   writeln('Calcurate time is=',TimeToStr(Time-StarTime));
+   if UpperCase(ExtractFileExt(FN))='.BMP' then
+      BMP.WriteBMPFile(FN)
+   else if UpperCase(ExtractFileExt(FN))='.PNG' then
+      BMP.WritePNG(FN)
+   else
+      BMP.WritePPM(FN);
 end.
   
