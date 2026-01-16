@@ -52,6 +52,7 @@ type
       function GetNorm(x:Vec3):Vec3;override;
    end;
 
+
 implementation
 function AABBRecord.MargeBoundBox(box1:AABBRecord):AABBRecord;
 var
@@ -224,6 +225,8 @@ function RectClass.GetNorm(x:Vec3):Vec3;
 begin
   result:=nl;
 end;
+
+
 
 begin
 end.

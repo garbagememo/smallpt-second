@@ -47,7 +47,7 @@ end;
 
 function CamRecord.GetRay(x,y,sx,sy:integer):RayRecord;
 var
-   r1,r2,dx,dy,temp:real;
+   r1,r2,dx,dy:real;
    dirct:Vec3;
 begin
    r1 := 2 * random;
@@ -138,7 +138,9 @@ begin
    ThreadNum:=8;
    modelnum:=0;
    FN:='temp.bmp';
-   w:=640 ;h:=480;  samps := 16;
+   w:=640 ;h:=480;
+   //w:=960;h:=540;
+   samps := 16;
    c:=#0;
    repeat
      c:=getopt('m:o:s:t:w:');
@@ -197,7 +199,14 @@ begin
                   camDirection.new(0,-0.12,-1).norm,
                   w,h,samps);
           cam.PlaneDist:=70;
-     end;
+        end;
+     11:begin
+           sc.EvenlySpiralScene;
+           cam.new(camPosition.new(-10,150,220),
+                   camDirection.new(0,-150,-200).norm,
+                   w,h,samps);
+           cam.PlaneDist:=70;
+        end;
      10:begin
           sc.SpiralScene;
           cam.new(camPosition.new(0,300,400),

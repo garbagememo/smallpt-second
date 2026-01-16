@@ -6,7 +6,7 @@
 interface
 uses SysUtils,Classes,uVect,uBMP,Math,getopts,uMaterial,uShape,uBVH;
 
-type 
+type
    ShapeListClass=Class
       shapes:TList;
       constructor create;
@@ -35,16 +35,13 @@ type
       procedure IslandScene;
       procedure RectLightScene;
       procedure BVHRandomScene;
+      procedure EvenlySpiralScene;
       function Radiance(const r:RayRecord;depth:integer):Vec3;
    end;
-
-
-
 
    var
       sc:SceneRecord;
 implementation
-
 constructor ShapeListClass.create;
 begin
    Shapes:=TList.Create;
@@ -82,7 +79,6 @@ function ShapeListClass.GetObj(id:integer):ShapeClass;
 begin
    result:=ShapeClass(shapes[id]);
 end;
-
 
 function BVHSceneClass.intersect(const r:RayRecord):HitInfo;
 begin
@@ -369,6 +365,67 @@ begin
 
    scList.add(sph);
 end;
+
+procedure SceneRecord.EvenlySpiralScene;
+var
+   Cen,Cen1,Cen2,Cen3:Vec3;
+   n:integer;
+   r,theta:real;
+   RandomMatterial:real;
+   p,c,e:Vec3;
+   sph:ShapeListClass;
+   //等間隔計算用
+   a,b,x,y:real;
+   L: real;
+   numPoints, i: Integer;
+   s_start, s_current: real;
+   constPart: real;
+begin
+   sph:=ShapeListClass.create;
+   Cen.new(50,40.8,-860);
+
+   Cen2.new(0,0,0);
+
+   sph.add(SphereClass.Create(10000,Cen+p.new(0,0,-200), e.new(0.6, 0.5, 0.7)*0.8, c.new(0.7,0.9,1.0),  DIFF)); // sky
+   sph.add(SphereClass.Create(100000, p.new(50, -100000, 0), ZeroVec, c.new(0.4,0.4,0.4),  DIFF)); // grnd
+
+
+   // --- パラメータ設定 ---
+   a := 15.0;     // 係数
+   b := 0.15;     // 螺旋の広がり具合
+   L := 15.0;     // 点と点の間の弧長（距離）
+   numPoints := 50;
+   
+   // 弧長公式の一部を定数として計算しておく
+   // constPart = (a * sqrt(1 + b^2)) / b
+   constPart := (a * Sqrt(1 + Power(b, 2))) / b;
+
+   // 開始地点の弧長を計算（例：theta = 0 のとき）
+   // s = constPart * exp(b * theta)
+   s_start := constPart * Exp(b * pi/2);
+
+   for i := 0 to numPoints - 1 do begin
+      // 現在の弧長
+      s_current := s_start + (i * L);
+
+      // 1. 弧長から角度 theta を逆算
+      // theta = (1/b) * ln(s / constPart)
+      theta := (1 / b) * Ln(s_current / constPart);
+      if theta>3.5*pi then break;
+
+      // 2. 極座標から動径 r を計算
+      r := a * Exp(b * theta);
+
+      // 3. 直交座標 (x, y) に変換
+      x := r * Cos(theta);
+      y := r * Sin(theta);
+      cen1:=cen2+cen1.new(x,5,-y);
+      sph.add(SphereClass.Create(5,Cen1,ZeroVec,c.new(random,random,random),DIFF));
+   end;
+
+   scList.add(sph);
+end;
+
 
 procedure SceneRecord.BVHRandomScene;
 var
