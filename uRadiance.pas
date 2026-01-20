@@ -4,7 +4,7 @@
 {$modeswitch advancedrecords}
 
 interface
-uses SysUtils,Classes,uVect,uBMP,Math,getopts,uMaterial,uShape,uBVH;
+uses SysUtils,Classes,uVect,uBMP,Math,getopts,uMaterial,uShape,uBVH,uPolygon;
 
 type
    ShapeListClass=Class
@@ -36,6 +36,7 @@ type
       procedure RectLightScene;
       procedure BVHRandomScene;
       procedure EvenlySpiralScene;
+      procedure RectAngleScene;
       function Radiance(const r:RayRecord;depth:integer):Vec3;
    end;
 
@@ -53,25 +54,28 @@ end;
 
 function ShapeListClass.intersect(const r:RayRecord):HitInfo;
 var 
-  x,n,nl:Vec3;
   t,d:real;
-  i,id:integer;
+  i,id,FaceID:integer;
+  Info:InterInfo;
 begin
    result.isHit:=false;
    result.t:=INF;
    t:=INF;
    id:=Shapes.count-1;
    for i:=0 to Shapes.count-1 do begin
-      d:=ShapeClass(Shapes[i]).intersect(r);
-      if d<t then begin
+      Info:=ShapeClass(Shapes[i]).intersect(r);
+      d:=Info.t;
+      if d < t then begin
          t:=d;
          id:=i;
+         FaceID:=Info.FaceID;
       end;
    end;
    result.isHit:=(t<inf);
    if result.isHit then begin
       result.t:=t;
       result.id:=id;
+      result.FaceID:=FaceID;
    end;
 end;
 
@@ -128,18 +132,18 @@ begin
       result:=ZeroVec;exit;
    end;
    x:=r.o+r.d*hit.t;
-   n:=hit.obj.GetNorm(x);
+   n:=hit.obj.GetNorm(x,hit.FaceID);
    if n.dot(r.d)<0 then nl:=n else nl:=n*-1;
-   f := hit.obj.c;
+   f := hit.obj.tx.getColor(x);
    p:=Max(f.x,Max(f.y,f.z));
    if (depth>5) then begin
       if random<p then 
          f:=f/p 
       else
-         Exit(hit.obj.e);
+         Exit(hit.obj.tx.GetEmit(x));
    end;
    tInfo := hit.obj.m.GetRay(r,x,n,nl);
-   result:=hit.obj.e+f.Mult(Radiance(tInfo.r,depth))*tInfo.cpc;
+   result:=hit.obj.tx.GetEmit(x)+f.Mult(Radiance(tInfo.r,depth))*tInfo.cpc;
 end;
 
 
@@ -486,6 +490,24 @@ begin
    scList.add(bvh);
 end;
 
+procedure SceneRecord.RectAngleScene;
+var
+   p,c,e:Vec3;
+   LB,RT:Vec3;
+   sph:ShapeListClass;
+begin
+   sph:=ShapeListClass.create;
+   sph.add( SphereClass.Create(1e5, p.new( 1e5+1,40.8,81.6),    ZeroVec,c.new(0.75,0.25,0.25),DIFF) );//Left
+   sph.add( SphereClass.Create(1e5, p.new(-1e5+99,40.8,81.6),   ZeroVec,c.new(0.25,0.25,0.75),DIFF) );//Right
+   sph.add( SphereClass.Create(1e5, p.new(50,40.8, 1e5),        ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Back
+   sph.add( SphereClass.Create(1e5, p.new(50,40.8,-1e5+170+eps),ZeroVec,c.new(0,0,0)       ,DIFF) );//Front
+   sph.add( SphereClass.Create(1e5, p.new(50, 1e5, 81.6),       ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Bottomm
+   sph.add( SphereClass.Create(1e5, p.new(50,-1e5+81.6,81.6),   ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Top
+   sph.add( SphereClass.Create(16.5,p.new(73,16.5,88),          ZeroVec,c.new(0.9,0.7,0.8),   REFR) );//Glass
+   sph.add( RectAngleClass.Create(LB.new(10,0,30),RT.new(40,35,60),ZeroVec,c.new(0.4,0.8,0.6),SPEC) );//Rect Mirror
+   sph.add( RectAngleClass.Create(LB.new(38,68,58),RT.new(62,72,82), e.new(4,4,4)*3,   ZeroVec,  DIFF) );//Ligth
+   scList.add(sph);
+end;
 
 begin
 end.

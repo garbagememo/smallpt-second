@@ -94,7 +94,7 @@ var
 begin
    while y<hight do begin
       if y mod 10 =0 then writeln('y=',y);
-      for x := 0 to wide - 1 do begin
+      for x:= 0 to wide - 1 do begin
          tColor:=ZeroVec;
          for sy := 0 to 1 do begin
             for sx := 0 to 1 do begin
@@ -139,8 +139,8 @@ begin
    ThreadNum:=8;
    modelnum:=0;
    FN:='out.png';
-   //w:=640 ;h:=480;
-   w:=1920;h:=1080;
+   w:=640 ;h:=480;
+   //w:=1920;h:=1080;
    samps := 16;
    AspectFlag:=false;
    c:=#0;
@@ -201,6 +201,9 @@ begin
    Randomize;
    cam.new(camPosition.new(50, 52, 295.6),camDirection.new(0, -0.042612, -1).norm,w,h,samps );
    case modelnum of
+      30:begin
+            sc.RectAngleScene;
+         end;
       20:begin
             sc.bvhRandomScene;
             cam.new(camPosition.new(55,40,295.6),

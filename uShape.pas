@@ -4,7 +4,7 @@
 {$modeswitch advancedrecords}
 
 interface
-uses SysUtils,Classes,uVect,uBMP,Math,getopts,uMaterial;
+uses SysUtils,Classes,uVect,uBMP,Math,getopts,uMaterial,uTexture;
 
 const 
   eps=1e-4;
@@ -16,9 +16,14 @@ type
       isHit:boolean;
       t:real;
       id:integer;//本来オブジェクトにしたいが・・・
+      FaceID:integer;//RectAngleのどの面かを示す
       obj:ShapeClass;
    end;
-      
+   InterInfo=record
+      t:real;
+      FaceID:integer;
+   end;
+         
    AABBRecord=record
       Min,Max:Vec3;
       function hit(r:RayRecord;tmin,tmax:real):boolean;
@@ -28,18 +33,19 @@ type
 
    ShapeClass=class
       p,c,e:Vec3;// position emit color
+      tx:TextureClass;
       m:MaterialClass;
       BoundBox:AABBRecord;
       constructor Create(p_,e_,c_:Vec3;refl_:RefType);virtual;
-      function intersect(const r:RayRecord):real;virtual;abstract;
-      function GetNorm(x:Vec3):Vec3;virtual;abstract;
+      function intersect(const r:RayRecord):InterInfo;virtual;abstract;
+      function GetNorm(x:Vec3;FaceID:integer):Vec3;virtual;abstract;
    end;
    
    SphereClass=class(ShapeClass)
       rad:real;       //radius
       constructor Create(rad_:real;p_,e_,c_:Vec3;refl_:RefType);virtual;
-      function intersect(const r:RayRecord):real;override;
-      function GetNorm(x:Vec3):Vec3;override;
+      function intersect(const r:RayRecord):InterInfo;override;
+      function GetNorm(x:Vec3;FaceID:integer):Vec3;override;
    end;
 
    RectAxisType=(XY,YZ,XZ);(*平面がどっち向いているか*)
@@ -48,9 +54,19 @@ type
       RA:RectAxisType;
       nl,hv,wv:Vec3;
       constructor Create(RA_:RectAxisType;H1_,H2_,V1_,V2_:real;p_,e_,c_:Vec3;refl_:RefType);
-      function intersect(const r:RayRecord):real;override;
-      function GetNorm(x:Vec3):Vec3;override;
+      function intersect(const r:RayRecord):InterInfo;override;
+      function GetNorm(x:Vec3;FaceID:integer):Vec3;override;
    end;
+
+
+  RectAngleClass=class(ShapeClass)
+    RAary:array[0..5] of RectClass;
+    RACenter:Vec3;
+    constructor Create(p1,p2,e_,c_:Vec3;refl_:RefType);
+    function intersect(const r:RayRecord):InterInfo;override;
+    function GetNorm(x:Vec3;FaceID:integer):Vec3;override;
+  end;
+
 
 
 implementation
@@ -114,6 +130,8 @@ end;
 constructor ShapeClass.Create(p_,e_,c_:Vec3;refl_:RefType);
 begin
    p:=p_;e:=e_;c:=c_;
+   tx:=TextureClass.Create(e_,c_);
+   tx.e:=e;tx.c:=c;
    if refl_=DIFF then m:=DiffuseClass.Create;
    if refl_=SPEC then m:=MirrorClass.Create;
    if refl_=REFR then m:=RefractClass.Create;
@@ -129,31 +147,32 @@ begin
    BoundBox.new(p - b.new(rad, rad, rad),
                 p + b.new(rad, rad, rad));
 end;
-function SphereClass.intersect(const r:RayRecord):real;
+function SphereClass.intersect(const r:RayRecord):InterInfo;
 var
   op:Vec3;
   t,b,det:real;
 begin
-  op:=p-r.o;
-  t:=eps;b:=op*r.d;det:=b*b-op*op+rad*rad;
-  if det<0 then 
-    result:=INF
-  else begin
-    det:=sqrt(det);
-    t:=b-det;
-    if t>eps then 
-      result:=t
-    else begin
-      t:=b+det;
+   result.FaceID:=-1;
+   op:=p-r.o;
+   t:=eps;b:=op*r.d;det:=b*b-op*op+rad*rad;
+   if det<0 then 
+      result.t:=INF
+   else begin
+      det:=sqrt(det);
+      t:=b-det;
       if t>eps then 
-        result:=t
-      else
-        result:=INF;
-    end;
-  end;
+         result.t:=t
+      else begin
+         t:=b+det;
+         if t>eps then 
+            result.t:=t
+         else
+            result.t:=INF;
+      end;
+   end;
 end;
 
-function SphereClass.GetNorm(x:Vec3):Vec3;
+function SphereClass.GetNorm(x:Vec3;FaceID:integer):Vec3;
 begin
   result:=(x-p).norm;
 end;
@@ -187,45 +206,81 @@ begin
 end;
 
 
-function RectClass.intersect(const r:RayRecord):real;
+function RectClass.intersect(const r:RayRecord):InterInfo;
 var
    t:real;
    pt:Vec3;
 begin
+   result.FaceID:=-1;
    (**光線と平行に近い場合の処理が必要だが・・・**)
    case RA of
       xy:begin
-            result:=INF;
+            result.t:=INF;
             if abs(r.d.z)<eps then exit;
             t:=(p.z-r.o.z)/r.d.z;
             if t<eps then exit;//result is INF
             pt:=r.o+r.d*t;
-            if (pt.x<H2) and (pt.x>H1) and (pt.y<V2)and (pt.y>V1) then result:=t;
+            if (pt.x<H2) and (pt.x>H1) and (pt.y<V2)and (pt.y>V1) then result.t:=t;
          end;(*xy*)
       xz:begin
-            result:=INF;
+            result.t:=INF;
             if abs(r.d.y)<eps then exit;
             t:=(p.y-r.o.y)/r.d.y;
             if t<eps then exit;//result is INF
             pt:=r.o+r.d*t;
-            if (pt.x<H2) and (pt.x>H1) and (pt.z<V2)and (pt.z>V1) then result:=t;
+            if (pt.x<H2) and (pt.x>H1) and (pt.z<V2)and (pt.z>V1) then result.t:=t;
          end;(*xz*)
       yz:begin
-            result:=INF;
+            result.t:=INF;
             if abs(r.d.x)<eps then exit;
             t:=(p.x-r.o.x)/r.d.x;
             if t<eps then exit;//result is INF
             pt:=r.o+r.d*t;
-            if (pt.y<H2) and (pt.y>H1) and (pt.z<V2)and (pt.z>V1) then result:=t;
+            if (pt.y<H2) and (pt.y>H1) and (pt.z<V2)and (pt.z>V1) then result.t:=t;
          end;(*yz*)
    end;(*case*)
 end;
 
-function RectClass.GetNorm(x:Vec3):Vec3;
+function RectClass.GetNorm(x:Vec3;FaceID:integer):Vec3;
 begin
   result:=nl;
 end;
 
+constructor RectAngleClass.Create(p1,p2,e_,c_:Vec3;refl_:RefType);
+begin
+  inherited create(p2,e_,c_,refl_);
+  (*xy*)
+  RAary[0]:=RectClass.Create(XY,p1.x,p2.x,p1.y,p2.y,p1,e_,c_,refl_);
+  RAary[1]:=RectClass.Create(XY,p1.x,p2.x,p1.y,p2.y,p2,e_,c_,refl_);
+  (*xz*)
+  RAary[2]:=RectClass.Create(XZ,p1.x,p2.x,p1.z,p2.z,p1,e_,c_,refl_);
+  RAary[3]:=RectClass.Create(XZ,p1.x,p2.x,p1.z,p2.z,p2,e_,c_,refl_);
+  (*YZ*)
+  RAary[4]:=RectClass.Create(YZ,p1.y,p2.y,p1.z,p2.z,p1,e_,c_,refl_);
+  RAary[5]:=RectClass.Create(YZ,p1.y,p2.y,p1.z,p2.z,p2,e_,c_,refl_);  
+  (*NEE*)
+  RACenter:=(p1+p2)/2;
+end;
+function RectAngleClass.intersect(const r:RayRecord):InterInfo;
+var
+   i:integer;
+   Info:InterInfo;
+begin
+   result.t:=INF;
+   result.FaceID:=-1;
+   for i:=0 to 5 do begin
+      Info:=RAary[i].intersect(r);
+      if Info.t < result.t then begin
+         result.t:=info.t;
+         Result.FaceID:=i;
+      end;
+   end;
+end;
+
+function RectAngleClass.GetNorm(x:Vec3;FaceID:integer):Vec3;
+begin
+  result:=RAary[FaceID].GetNorm(x,FaceID);
+end;
 
 
 begin

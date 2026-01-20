@@ -88,37 +88,39 @@ end;
 function BVHnodeClass.intersect(r:RayRecord;sph:TList):HitInfo;
 var
    RIR,LIR:HitInfo;
-   t:real;
+   Info:InterInfo;
 begin
-  result.isHit:=false;
-  result.t:=INF;
-  result.id:=0;
-  if leaf<>Nil_Leaf then begin
-    result.t:=ShapeClass(sph[leaf]).intersect(r);
-    if result.t<INF then begin
-      result.id:=Leaf;
-      result.isHit:=true;
-    end;
-    exit;
-  end;
+   result.isHit:=false;
+   result.t:=INF;
+   result.id:=0;
+   if leaf<>Nil_Leaf then begin
+      Info:=ShapeClass(sph[leaf]).intersect(r);
+      result.t:=Info.t;
+      if result.t<INF then begin
+         result.id:=Leaf;
+         result.isHit:=true;
+         result.FaceID:=Info.FaceID;
+      end;
+      exit;
+   end;
 
-  if root.Hit(r,EPS,INF) then begin
-     RIR:=Right.intersect(r,sph);
-     LIR:=Left.intersect(r,sph);
-     if (LIR.isHit or RIR.isHit) then begin
-        if RIR.isHit then result:=RIR;
-        if LIR.isHit then begin
-           if RIR.isHit=false then
-              result:=LIR
-           else if RIR.t>LIR.t then
-              result:=LIR;
-        end;
-     end;
-  end
-  else begin
-    result.isHit:=false;
-    result.t:=INF;
-  end;
+   if root.Hit(r,EPS,INF) then begin
+      RIR:=Right.intersect(r,sph);
+      LIR:=Left.intersect(r,sph);
+      if (LIR.isHit or RIR.isHit) then begin
+         if RIR.isHit then result:=RIR;
+         if LIR.isHit then begin
+            if RIR.isHit=false then
+               result:=LIR
+            else if RIR.t>LIR.t then
+               result:=LIR;
+         end;
+      end;
+   end
+   else begin
+      result.isHit:=false;
+      result.t:=INF;
+   end;
 end;
 
 begin
