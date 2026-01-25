@@ -54,6 +54,7 @@ begin
    result.cpc:=1.0;
 end;
 
+
 function RefractClass.GetRay(r:RayRecord;x,n,nl:Vec3):TraceInfo;
 var
    ray2,RefRay:RayRecord;
@@ -64,7 +65,8 @@ var
 begin
    RefRay.new(x,r.d-n*2*(n*r.d) );
    into:= (n*nl>0);
-   nc:=1;nt:=1.5; if into then nnt:=nc/nt else nnt:=nt/nc; ddn:=r.d*nl; 
+   nc:=1;nt:=1.5;
+   if into then nnt:=nc/nt else nnt:=nt/nc; ddn:=r.d*nl; 
    cos2t:=1-nnt*nnt*(1-ddn*ddn);
    if cos2t<0 then begin   // Total internal reflection
       result.r:=RefRay;

@@ -171,17 +171,16 @@ var
    sph:ShapeListClass;
 begin
    sph:=ShapeListClass.create;
-  sph.add( SphereClass.Create(1e5, p.new( 1e5+1,40.8,81.6),  ZeroVec,c.new(0.75,0.25,0.25),DIFF) );//Left
-  sph.add( SphereClass.Create(1e5, p.new(-1e5+99,40.8,81.6), ZeroVec,c.new(0.25,0.25,0.75),DIFF) );//Right
-  sph.add( SphereClass.Create(1e5, p.new(50,40.8, 1e5),      ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Back
-  sph.add( SphereClass.Create(1e5, p.new(50,40.8,-1e5+170+eps),ZeroVec,ZeroVec            ,DIFF) );//Front
-  sph.add( SphereClass.Create(1e5, p.new(50, 1e5, 81.6),     ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Bottomm
-  sph.add( SphereClass.Create(1e5, p.new(50,-1e5+81.6,81.6), ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Top
-  sph.add( SphereClass.Create(16.5,p.new(27,16.5,47),        ZeroVec,c.new(1,1,1)*0.999,   SPEC) );//Mirror
-  sph.add( SphereClass.Create(16.5,p.new(73,16.5,88),        ZeroVec,c.new(1,1,1)*0.999,   REFR) );//Glass
-  sph.add( SphereClass.Create( 1.5,p.new(50,81.6-16.5,81.6), e.new(4,4,4)*100,   ZeroVec,  DIFF) );//Ligth
+   sph.add( SphereClass.Create(1e5, p.new( 1e5+1,40.8,81.6),  ZeroVec,c.new(0.75,0.25,0.25),DIFF) );//Left
+   sph.add( SphereClass.Create(1e5, p.new(-1e5+99,40.8,81.6), ZeroVec,c.new(0.25,0.25,0.75),DIFF) );//Right
+   sph.add( SphereClass.Create(1e5, p.new(50,40.8, 1e5),      ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Back
+   sph.add( SphereClass.Create(1e5, p.new(50,40.8,-1e5+170+eps),ZeroVec,ZeroVec            ,DIFF) );//Front
+   sph.add( SphereClass.Create(1e5, p.new(50, 1e5, 81.6),     ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Bottomm
+   sph.add( SphereClass.Create(1e5, p.new(50,-1e5+81.6,81.6), ZeroVec,c.new(0.75,0.75,0.75),DIFF) );//Top
+   sph.add( SphereClass.Create(16.5,p.new(27,16.5,47),        ZeroVec,c.new(1,1,1)*0.999,   SPEC) );//Mirror
+   sph.add( SphereClass.Create(16.5,p.new(73,16.5,88),        ZeroVec,c.new(1,1,1)*0.999,   REFR) );//Glass
+   sph.add( SphereClass.Create( 1.5,p.new(50,81.6-16.5,81.6), e.new(4,4,4)*100,   ZeroVec,  DIFF) );//Ligth
    scList.add(sph);
-
 end;
 
 procedure SceneRecord.RandomScene;
@@ -343,31 +342,74 @@ end;
 
 procedure SceneRecord.SpiralScene;
 var
-   Cen,Cen1,Cen2,Cen3:Vec3;
+   Cen,Cen1,Cen2,LB,RT:Vec3;
    n:integer;
    r,theta:real;
-   a,b:real;
    RandomMatterial:real;
    p,c,e:Vec3;
    sph:ShapeListClass;
+   bvh:BVHSceneClass;
+   //等間隔計算用
+   a,b,x,y:real;
+   L: real;
+   numPoints, i: Integer;
+   s_start, s_current: real;
+   constPart: real;
+   radius:real;
+   ArcLength:real;
 begin
    sph:=ShapeListClass.create;
    Cen.new(50,40.8,-860);
 
-   a:=15;b:=0.15;theta:=pi/6;
    Cen2.new(0,0,0);
 
    sph.add(SphereClass.Create(10000,Cen+p.new(0,0,-200), e.new(0.6, 0.5, 0.7)*0.8, c.new(0.7,0.9,1.0),  DIFF)); // sky
    sph.add(SphereClass.Create(100000, p.new(50, -100000, 0), ZeroVec, c.new(0.4,0.4,0.4),  DIFF)); // grnd
+   sph.add( RectAngleClass.Create(LB.new(-10,30,-10),RT.new(90,32,90),ZeroVec,c.new(0.9,1.0,0.95),REFR) );
+   sph.add( RectAngleClass.Create(LB.new(10,26,10),RT.new(-90,28,-90),ZeroVec,c.new(1.0,0.9,0.95),REFR) );
 
-   for n:=0 to 18 do begin
-      theta:=pi/6*(3+n);
-      r:=a*Exp(b*theta);
-      cen1:=cen2+cen1.new(r*cos(theta),5,r*sin(-theta) );//zは手前が＋なのでマイナスしないといけない
-      sph.add(SphereClass.Create(5,Cen1,ZeroVec,c.new(random,Random,random),DIFF));
+   radius:=4;//玉の半径
+   ArcLength:=radius*3;//弧長
+   // --- パラメータ設定 ---
+   a := 15.0;     // 係数
+   b := 0.15;     // 螺旋の広がり具合
+   L := ArcLength;     // 点と点の間の弧長（距離）
+   numPoints := 50;
+
+   
+   // 弧長公式の一部を定数として計算しておく
+   // constPart = (a * sqrt(1 + b^2)) / b
+   constPart := (a * Sqrt(1 + Power(b, 2))) / b;
+
+   // 開始地点の弧長を計算（例：theta = 0 のとき）
+   // s = constPart * exp(b * theta)
+   s_start := constPart * Exp(b * pi/2);
+
+   i:=0;theta:=0;
+   bvh:=BVHSceneClass.Create;
+   while theta<3.5*pi do begin
+      // 現在の弧長
+      s_current := s_start + (i * L);
+
+      // 1. 弧長から角度 theta を逆算
+      // theta = (1/b) * ln(s / constPart)
+      theta := (1 / b) * Ln(s_current / constPart);
+      if theta>3.5*pi then break;
+
+      // 2. 極座標から動径 r を計算
+      r := a * Exp(b * theta);
+
+      // 3. 直交座標 (x, y) に変換
+      x := r * Cos(theta);
+      y := r * Sin(theta);
+      cen1:=cen2+cen1.new(x,radius,-y);
+      bvh.add(SphereClass.Create(radius,Cen1,ZeroVec,c.new(random,random,random),DIFF));
+      inc(i);
    end;
 
    scList.add(sph);
+   bvh.MakeBVHNode;
+   scList.add(bvh);
 end;
 
 procedure SceneRecord.EvenlySpiralScene;

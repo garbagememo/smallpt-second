@@ -60,8 +60,8 @@ type
 
 
   RectAngleClass=class(ShapeClass)
-    RAary:array[0..5] of RectClass;
-    RACenter:Vec3;
+     RAary:array[0..5] of RectClass;
+     RACenter:Vec3;
     constructor Create(p1,p2,e_,c_:Vec3;refl_:RefType);
     function intersect(const r:RayRecord):InterInfo;override;
     function GetNorm(x:Vec3;FaceID:integer):Vec3;override;
@@ -248,18 +248,23 @@ end;
 
 constructor RectAngleClass.Create(p1,p2,e_,c_:Vec3;refl_:RefType);
 begin
-  inherited create(p2,e_,c_,refl_);
-  (*xy*)
-  RAary[0]:=RectClass.Create(XY,p1.x,p2.x,p1.y,p2.y,p1,e_,c_,refl_);
-  RAary[1]:=RectClass.Create(XY,p1.x,p2.x,p1.y,p2.y,p2,e_,c_,refl_);
-  (*xz*)
-  RAary[2]:=RectClass.Create(XZ,p1.x,p2.x,p1.z,p2.z,p1,e_,c_,refl_);
-  RAary[3]:=RectClass.Create(XZ,p1.x,p2.x,p1.z,p2.z,p2,e_,c_,refl_);
-  (*YZ*)
-  RAary[4]:=RectClass.Create(YZ,p1.y,p2.y,p1.z,p2.z,p1,e_,c_,refl_);
-  RAary[5]:=RectClass.Create(YZ,p1.y,p2.y,p1.z,p2.z,p2,e_,c_,refl_);  
-  (*NEE*)
-  RACenter:=(p1+p2)/2;
+   RACenter:=(p1+p2)/2;
+   inherited create(RACenter,e_,c_,refl_);
+   (*xy*)
+   RAary[0]:=RectClass.Create(XY,p1.x,p2.x,p1.y,p2.y,p1,e_,c_,refl_);
+   if (p1-RACenter)*RAary[0].nl<0 then RAary[0].nl:=RAary[0].nl*(-1);
+   RAary[1]:=RectClass.Create(XY,p1.x,p2.x,p1.y,p2.y,p2,e_,c_,refl_);
+   if (p2-RACenter)*RAary[1].nl<0 then RAary[1].nl:=RAary[1].nl*(-1);
+   (*xz*)
+   RAary[2]:=RectClass.Create(XZ,p1.x,p2.x,p1.z,p2.z,p1,e_,c_,refl_);
+   if (p1-RACenter)*RAary[2].nl<0 then RAary[2].nl:=RAary[2].nl*(-1);
+   RAary[3]:=RectClass.Create(XZ,p1.x,p2.x,p1.z,p2.z,p2,e_,c_,refl_);
+   if (p2-RACenter)*RAary[3].nl<0 then RAary[3].nl:=RAary[3].nl*(-1);
+   (*YZ*)
+   RAary[4]:=RectClass.Create(YZ,p1.y,p2.y,p1.z,p2.z,p1,e_,c_,refl_);
+   if (p1-RACenter)*RAary[4].nl<0 then RAary[4].nl:=RAary[4].nl*(-1);
+   RAary[5]:=RectClass.Create(YZ,p1.y,p2.y,p1.z,p2.z,p2,e_,c_,refl_);  
+   if (p2-RACenter)*RAary[5].nl<0 then RAary[5].nl:=RAary[5].nl*(-1);
 end;
 function RectAngleClass.intersect(const r:RayRecord):InterInfo;
 var
