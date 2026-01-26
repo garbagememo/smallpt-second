@@ -359,14 +359,14 @@ var
    ArcLength:real;
 begin
    sph:=ShapeListClass.create;
+   sph.add(PolygonClass.Create(cen.new(0,0,0),cen1.new(30,30,-30),cen2.new(-30,30,-30),e.new(1,0.5,0.2),ZeroVec,SPEC));//light
    Cen.new(50,40.8,-860);
 
    Cen2.new(0,0,0);
 
-   sph.add(SphereClass.Create(10000,Cen+p.new(0,0,-200), e.new(0.6, 0.5, 0.7)*0.8, c.new(0.7,0.9,1.0),  DIFF)); // sky
+   sph.add(SphereClass.Create(10000,Cen+p.new(0,0,-200), e.new(0.6, 0.5, 0.7)*0.1, c.new(0.7,0.9,1.0),  DIFF)); // sky
    sph.add(SphereClass.Create(100000, p.new(50, -100000, 0), ZeroVec, c.new(0.4,0.4,0.4),  DIFF)); // grnd
-   sph.add( RectAngleClass.Create(LB.new(-10,30,-10),RT.new(90,32,90),ZeroVec,c.new(0.9,1.0,0.95),REFR) );
-   sph.add( RectAngleClass.Create(LB.new(10,26,10),RT.new(-90,28,-90),ZeroVec,c.new(1.0,0.9,0.95),REFR) );
+
 
    radius:=4;//玉の半径
    ArcLength:=radius*3;//弧長
@@ -374,8 +374,6 @@ begin
    a := 15.0;     // 係数
    b := 0.15;     // 螺旋の広がり具合
    L := ArcLength;     // 点と点の間の弧長（距離）
-   numPoints := 50;
-
    
    // 弧長公式の一部を定数として計算しておく
    // constPart = (a * sqrt(1 + b^2)) / b
@@ -410,6 +408,7 @@ begin
    scList.add(sph);
    bvh.MakeBVHNode;
    scList.add(bvh);
+
 end;
 
 procedure SceneRecord.EvenlySpiralScene;
@@ -424,7 +423,7 @@ var
    //等間隔計算用
    a,b,x,y:real;
    L: real;
-   numPoints, i: Integer;
+   i: Integer;
    s_start, s_current: real;
    constPart: real;
    radius:real;
@@ -445,8 +444,6 @@ begin
    a := 15.0;     // 係数
    b := 0.15;     // 螺旋の広がり具合
    L := ArcLength;     // 点と点の間の弧長（距離）
-   numPoints := 50;
-
    
    // 弧長公式の一部を定数として計算しておく
    // constPart = (a * sqrt(1 + b^2)) / b

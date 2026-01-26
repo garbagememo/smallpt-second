@@ -220,8 +220,8 @@ begin
          end;
       10:begin
             sc.SpiralScene;
-            cam.new(camPosition.new(0,300,400),
-                    camDirection.new(0,-300,-400).norm,
+            cam.new(camPosition.new(-10,150,220),
+                    camDirection.new(0,-150,-200).norm,
                     w,h,samps);
             cam.PlaneDist:=70;
          end;
