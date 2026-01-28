@@ -67,7 +67,19 @@ type
     function GetNorm(x:Vec3;FaceID:integer):Vec3;override;
   end;
 
+  QuateVertex=record
+     v0,v1,v2,v3:Vec3;
+  end;
 
+  PolygonClass=class(ShapeClass)
+     V0,V1,V2:Vec3;
+     nl:Vec3;
+     constructor create(v0_,v1_,v2_,e_,c_:Vec3;refl_:reftype);virtual;
+     function intersect(const r:RayRecord):InterInfo;override;
+     function GetNorm(x:Vec3;FaceID:integer):Vec3;override;
+   end;
+
+function GenQuateVertex(cen:Vec3;R:real):QuateVertex;
 
 implementation
 function AABBRecord.MargeBoundBox(box1:AABBRecord):AABBRecord;
@@ -284,7 +296,75 @@ end;
 
 function RectAngleClass.GetNorm(x:Vec3;FaceID:integer):Vec3;
 begin
-  result:=RAary[FaceID].GetNorm(x,FaceID);
+   result:=RAary[FaceID].GetNorm(x,FaceID);
+end;
+
+
+
+constructor PolygonClass.create(v0_,v1_,v2_,e_,c_:Vec3;refl_:reftype);
+begin
+   v0:=v0_;v1:=v1_;v2:=v2_;
+   e:=e_;c:=c_;
+   tx:=TextureClass.Create(e_,c_);
+   if refl_=DIFF then m:=DiffuseClass.Create;
+   if refl_=SPEC then m:=MirrorClass.Create;
+   if refl_=REFR then m:=RefractClass.Create;
+end;
+
+function PolygonClass.intersect(const r:RayRecord):InterInfo;
+var
+   edge1, edge2, h, s, q: vec3;
+   a, f, t,u, v: real;
+begin
+   result.t := INF;
+   result.FaceID:=-1;
+   edge1 := V1 - V0;
+   edge2 := V2 - V0;
+
+   nl := edge1.Cross(edge2).norm;
+   
+   h := r.d.cross(edge2);
+   a := edge1*h;
+
+   // aが0に近い場合、光線はポリゴンと平行
+   if (a > -EPS) and (a < EPS) then Exit;
+
+   f := 1.0 / a;
+   s := r.o - V0;
+   u := f * (s*h);
+
+   // 重心座標uが範囲外なら交差しない
+   if (u < 0.0) or (u > 1.0) then Exit;
+
+   q := s.Cross(edge1);
+   v := f * (r.d*q);
+
+   // 重心座標vおよびu+vのチェック
+   if (v < 0.0) or (u + v > 1.0) then Exit;
+
+   // レイのパラメータtを計算
+   t := f * (edge2*q);
+
+   if t > EPS then
+      result.t:=t; // 交点あり
+end;
+
+function PolygonClass.GetNorm(x:Vec3;FaceID:integer):Vec3;
+begin
+   Result := nl;
+end;
+
+function GenQuateVertex(cen:Vec3;R:real):QuateVertex;
+var
+   qw:Vec3;
+   R3d6,R2d3:real;
+begin
+   R3d6:=sqrt(3)/6;
+   R2d3:=sqrt(2/3);
+   result.v0:=cen+qw.new( R/2,   0,  -R3d6*R);
+   result.v1:=cen+qw.new(-R/2,   0,  -R3d6*R);
+   result.v2:=cen+qw.new(   0,   0, 2*R3d6*R);
+   result.v3:=cen+qw.new(0,R2d3*R,0);
 end;
 
 

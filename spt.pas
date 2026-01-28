@@ -177,7 +177,7 @@ begin
                   writeln('w=',w,' ,h=',h);
                end;
          '?',':' : begin
-                      writeln(' -m [0..5] scene number');
+                      writeln(' -m [0..7,10,11,20,30] scene number');
                       writeln(' -o [finename] output filename');
                       writeln(' -s [samps] sampling count');
                       writeln(' -t [thread num]');

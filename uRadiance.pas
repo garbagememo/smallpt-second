@@ -4,7 +4,7 @@
 {$modeswitch advancedrecords}
 
 interface
-uses SysUtils,Classes,uVect,uBMP,Math,getopts,uMaterial,uShape,uBVH,uPolygon;
+uses SysUtils,Classes,uVect,uBMP,Math,getopts,uMaterial,uShape,uBVH;
 
 type
    ShapeListClass=Class
@@ -20,7 +20,6 @@ type
       function intersect(const r:RayRecord):HitInfo;override;
       procedure MakeBVHNode;
    end;
-   
 
    SceneRecord = record
       scList:TList;//List of SceneListClass
@@ -187,7 +186,7 @@ procedure SceneRecord.RandomScene;
 var
    Cen,Cen1,Cen2,Cen3:Vec3;
    a,b:integer;
-   RandomMatterial:real;
+   RandomMaterial:real;
    p,c,e:Vec3;
    sph:ShapeListClass;
 begin
@@ -208,13 +207,13 @@ begin
    sph.add(SphereClass.Create(25,  Cen3 ,ZeroVec,c.new(1,0.6,0.6)*0.696, DIFF));    // 乱反射
    for a:=-11 to 11 do begin
       for b:=-11 to 11 do begin
-         RandomMatterial:=random;
+         RandomMaterial:=random;
          Cen.new( (a+random)*25,5,(b+random)*25);
          if ( (Cen - Cen1) ).len>25*1.0 then begin
-            if RandomMatterial<0.8 then begin
+            if RandomMaterial<0.8 then begin
                sph.add(SphereClass.Create(5,Cen,ZeroVec,c.new(random,Random,random),DIFF));
             end
-            else if RandomMatterial <0.95 then begin
+            else if RandomMaterial <0.95 then begin
                sph.add(SphereClass.Create(5,Cen,ZeroVec,c.new(random,Random,random),SPEC));
             end
             else begin
@@ -342,29 +341,52 @@ end;
 
 procedure SceneRecord.SpiralScene;
 var
-   Cen,Cen1,Cen2,LB,RT:Vec3;
-   n:integer;
+   Cen,Cen1,Cen2:Vec3;
    r,theta:real;
-   RandomMatterial:real;
    p,c,e:Vec3;
    sph:ShapeListClass;
    bvh:BVHSceneClass;
    //等間隔計算用
    a,b,x,y:real;
    L: real;
-   numPoints, i: Integer;
+   i: Integer;
    s_start, s_current: real;
    constPart: real;
    radius:real;
    ArcLength:real;
+   procedure MakeTricone(c:Vec3;r:real;e_,c_:Vec3;refl_:RefType);
+   var
+     q:QuateVertex;
+   begin
+      q:=GenQuateVertex(c,r);
+      sph.add(PolygonClass.Create(q.v0,q.v1,q.v2,e_,c_,refl_));
+      sph.add(PolygonClass.Create(q.v0,q.v1,q.v3,e_,c_,refl_));
+      sph.add(PolygonClass.Create(q.v0,q.v2,q.v3,e_,c_,refl_));
+      sph.add(PolygonClass.Create(q.v1,q.v2,q.v3,e_,c_,refl_));
+   end;
 begin
    sph:=ShapeListClass.create;
-   sph.add(PolygonClass.Create(cen.new(0,0,0),cen1.new(30,30,-30),cen2.new(-30,30,-30),e.new(1,0.5,0.2),ZeroVec,SPEC));//light
+   MakeTricone(cen.new( -100, 0,-50),30,e.new(1,0.5,0.2)*4,ZeroVec,SPEC);
+   MakeTricone(cen.new(  100, 0,-50),30,e.new(0.5,1.0,0.2)*4,ZeroVec,SPEC);
+   MakeTricone(cen.new(  30, 0,  70),30,e.new(0.5,0.8,1.0)*4,ZeroVec,SPEC);
+
+
+   (*
+     sph.add(PolygonClass.Create(cen.new( -100, 0,-50),
+     cen1.new(-130,30,-50),
+     cen2.new( -70,30,-50),e.new(1,0.5,0.2)*4,ZeroVec,SPEC));//light
+     sph.add(PolygonClass.Create(cen.new(  100, 0,-50),
+     cen1.new( 130,30,-50),
+     cen2.new(  70,30,-50),e.new(0.5,1.0,0.2)*4,ZeroVec,SPEC));//light
+     sph.add(PolygonClass.Create(cen.new(   30, 0, 70),
+     cen1.new(  60,30, 70),
+     cen2.new(   0,30, 70),e.new(0.5,0.8,1.0)*4,ZeroVec,SPEC));//light
+   *)
    Cen.new(50,40.8,-860);
 
    Cen2.new(0,0,0);
 
-   sph.add(SphereClass.Create(10000,Cen+p.new(0,0,-200), e.new(0.6, 0.5, 0.7)*0.1, c.new(0.7,0.9,1.0),  DIFF)); // sky
+   sph.add(SphereClass.Create(10000,Cen+p.new(0,0,-200), e.new(0.6, 0.5, 0.7)*0.2, c.new(0.7,0.9,1.0),  DIFF)); // sky
    sph.add(SphereClass.Create(100000, p.new(50, -100000, 0), ZeroVec, c.new(0.4,0.4,0.4),  DIFF)); // grnd
 
 
@@ -404,7 +426,6 @@ begin
       bvh.add(SphereClass.Create(radius,Cen1,ZeroVec,c.new(random,random,random),DIFF));
       inc(i);
    end;
-
    scList.add(sph);
    bvh.MakeBVHNode;
    scList.add(bvh);
@@ -413,10 +434,8 @@ end;
 
 procedure SceneRecord.EvenlySpiralScene;
 var
-   Cen,Cen1,Cen2,Cen3:Vec3;
-   n:integer;
+   Cen,Cen1,Cen2:Vec3;
    r,theta:real;
-   RandomMatterial:real;
    p,c,e:Vec3;
    sph:ShapeListClass;
    bvh:BVHSceneClass;
