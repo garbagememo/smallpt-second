@@ -341,15 +341,17 @@ end;
 
 procedure SceneRecord.SpiralScene;
 var
-   Cen,Cen1,Cen2:Vec3;
+   Cen,Cen1,Cen2,LB,RT:Vec3;
+   n:integer;
    r,theta:real;
+   RandomMatterial:real;
    p,c,e:Vec3;
    sph:ShapeListClass;
    bvh:BVHSceneClass;
    //等間隔計算用
    a,b,x,y:real;
    L: real;
-   i: Integer;
+   numPoints, i: Integer;
    s_start, s_current: real;
    constPart: real;
    radius:real;
@@ -366,27 +368,15 @@ var
    end;
 begin
    sph:=ShapeListClass.create;
-   MakeTricone(cen.new( -100, 0,-50),30,e.new(1,0.5,0.2)*4,ZeroVec,SPEC);
-   MakeTricone(cen.new(  100, 0,-50),30,e.new(0.5,1.0,0.2)*4,ZeroVec,SPEC);
-   MakeTricone(cen.new(  30, 0,  70),30,e.new(0.5,0.8,1.0)*4,ZeroVec,SPEC);
+   MakeTricone(cen.new( -100, 0,-50),30,ZeroVec,c.new(1,0.5,0.2),DIFF);
+   MakeTricone(cen.new(  100, 0,-50),30,ZeroVec,c.new(0.5,1.0,0.2),DIFF);
+   MakeTricone(cen.new(  30, 0,  70),30,ZeroVec,c.new(0.5,0.8,1.0),DIFF);
 
-
-   (*
-     sph.add(PolygonClass.Create(cen.new( -100, 0,-50),
-     cen1.new(-130,30,-50),
-     cen2.new( -70,30,-50),e.new(1,0.5,0.2)*4,ZeroVec,SPEC));//light
-     sph.add(PolygonClass.Create(cen.new(  100, 0,-50),
-     cen1.new( 130,30,-50),
-     cen2.new(  70,30,-50),e.new(0.5,1.0,0.2)*4,ZeroVec,SPEC));//light
-     sph.add(PolygonClass.Create(cen.new(   30, 0, 70),
-     cen1.new(  60,30, 70),
-     cen2.new(   0,30, 70),e.new(0.5,0.8,1.0)*4,ZeroVec,SPEC));//light
-   *)
    Cen.new(50,40.8,-860);
 
    Cen2.new(0,0,0);
 
-   sph.add(SphereClass.Create(10000,Cen+p.new(0,0,-200), e.new(0.6, 0.5, 0.7)*0.2, c.new(0.7,0.9,1.0),  DIFF)); // sky
+   sph.add(SphereClass.Create(10000,Cen+p.new(0,0,-200),e.new(0.6, 0.5, 0.7)*0.8,c.new(0.7,0.9,1.0),DIFF)); // sky
    sph.add(SphereClass.Create(100000, p.new(50, -100000, 0), ZeroVec, c.new(0.4,0.4,0.4),  DIFF)); // grnd
 
 
@@ -434,8 +424,10 @@ end;
 
 procedure SceneRecord.EvenlySpiralScene;
 var
-   Cen,Cen1,Cen2:Vec3;
+   Cen,Cen1,Cen2,Cen3:Vec3;
+   n:integer;
    r,theta:real;
+   RandomMatterial:real;
    p,c,e:Vec3;
    sph:ShapeListClass;
    bvh:BVHSceneClass;

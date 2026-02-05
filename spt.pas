@@ -6,7 +6,7 @@ uses
   {$ifdef unix}
   cthreads,cmem,
   {$endif}
-  SysUtils,Classes,Math,uVect,uBMP,getopts,uShape,uRadiance;
+  SysUtils,Classes,Math,uVect,uBMP,getopts,uShape,uRadiance,uObjLoader;
 
 const
    MaxThread=32;
@@ -133,9 +133,13 @@ var
    FN,ArgFN:string;
    c:char;
    StarTime:TDateTime;
+   OL:ObjRecord;
 var
    ThreadAry:array[0..MaxThread-1] of TMyThread;
 begin
+   OL.new;
+   OL.FileLoad('ObjData/cube.obj');
+   
    ThreadNum:=8;
    modelnum:=0;
    FN:='out.png';
