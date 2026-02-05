@@ -2,7 +2,7 @@ unit uBMP;
 {$MODE objfpc}{$H+}
 {$modeswitch advancedrecords}
 interface
-uses classes,SysUtils,FPImage, FPWritePNG;
+uses classes,SysUtils,FPImage, FPWritePNG,FPReadPNG;
 
 const
     MaxArrayNum=1024*1024*2*2;
@@ -21,6 +21,7 @@ type
       procedure WriteBMPFile(FN:string);
       procedure WritePPM(FN:String);
       procedure WritePNG(FN:String);
+      procedure ReadPNG(FN:String);
     end;
 implementation
 procedure BMPRecord.new(x,y:longint);
@@ -136,6 +137,36 @@ begin
   image.SaveToFile (FN, writer);
   image.Free;
   writer.Free;
+end;
+
+procedure BMPRecord.ReadPNG(FN:string);
+var
+   myImage: TFPMemoryImage;
+   reader : TFPCustomImageReader;
+   x,y:integer;
+begin
+   myImage := TFPMemoryImage.Create(0, 0); // Dimensions can be auto-adjusted on load
+   reader := TFPReaderPNG.Create;
+   try
+      // Load the PNG file from a specified path
+      myImage.LoadFromFile(FN, reader);
+      new(myImage.width,myImage.height);
+      for y:=0 to MyImage.Height-1 do begin
+         for x:=0 to myImage.width-1 do begin
+            bmpBody[(y*bmpWidth+x)*3+2]:=myImage.colors[x,bmpHeight-y-1].red div 255;
+            bmpBody[(y*bmpWidth+x)*3+1]:=myImage.colors[x,bmpHeight-y-1].Green div 255;
+            bmpBody[(y*bmpWidth+x)*3  ]:=myImage.colors[x,bmpHeight-y-1].Blue div 255;
+         end;
+      end;
+   except
+      on E: Exception do
+         WriteLn('Error loading PNG file: ', E.Message);
+   end;
+
+   // Clean up
+   reader.Free;
+   myImage.Free;
+
 end;
 
 begin
