@@ -9,17 +9,31 @@ uses SysUtils,Classes,uVect,uBMP,Math,getopts,uMaterial,uTexture,uShape,StrUtils
 type 
   Vec3array=array of vec3;
 
-  VertexArray=record
+  VertexArray = record
     objtype:string;
     v3ary:Vec3array;
     procedure new;
     procedure add(v:Vec3);
   end;
 
-  ObjRecord=record
+  FaceRecord = record
+     VSuf:integer;
+     VNsuf:integer;
+  end;
+
+  FaceArray = array [0..2] of FaceRecord;
+
+  FaceArrayList = record
+     FA:array of FaceArray;
+     procedure new;
+     procedure add(st0,st1,st2:string);
+  end;
+  
+  ObjRecord = record
     FileStream:TFileStream;
     StreamReader:TStreamReader;
     Vary,VNary:VertexArray;
+    FAry:FaceArrayList;
     procedure new;
     procedure FileLoad(FN:String);
   end;
@@ -42,61 +56,93 @@ procedure ObjRecord.new;
 begin
   Vary.new;
   VNary.new;
+  FAry.new;
 end;
 
 procedure ObjRecord.FileLoad(FN: String);
 var
-  s: string;
-  SList: TStringDynArray;
-  v0: Vec3;
+   s: string;
+   SList: TStringDynArray;
+   v0: Vec3;
 begin
-  if not FileExists(FN) then begin
-    Writeln('File Does Not Exist!: ', FN);
-    Halt;
-  end;
+   if not FileExists(FN) then begin
+      Writeln('File Does Not Exist!: ', FN);
+      Halt;
+   end;
 
-  try
-    try
-      FileStream := TFileStream.Create(FN, fmOpenRead);
-      StreamReader := TStreamReader.Create(FileStream);
+   try
+      try
+         FileStream := TFileStream.Create(FN, fmOpenRead);
+         StreamReader := TStreamReader.Create(FileStream);
 
-      while not StreamReader.EOF do begin
-        s := StreamReader.ReadLine.Trim; // Trimで前後の空白を消去
-        writeln('s=>',s);
-        if s = '' then continue; // 空行をスキップ
+         while not StreamReader.EOF do begin
+            s := StreamReader.ReadLine.Trim; // Trimで前後の空白を消去
+            writeln('s=>',s);
+            if s = '' then continue; // 空行をスキップ
 
-        // 文字列の1文字目をチェック
-        if s[1] = 'v' then begin
-          // 複数の連続するスペースを考慮する場合、SplitStringより正規表現や
-          // 独自のパース関数が望ましいですが、一旦そのままにします
-           SList := SplitString(s, ' ');
+            // 文字列の1文字目をチェック
+            if s[1] = 'v' then begin
+               // 複数の連続するスペースを考慮する場合、SplitStringより正規表現や
+               // 独自のパース関数が望ましいですが、一旦そのままにします
+               SList := SplitString(s, ' ');
 
-          // 要素数が足りているか必ずチェック
-          if Length(SList) >= 4 then begin
-            if SList[0] = 'v' then begin
-              v0.x := StrToFloatDef(SList[1], 0);
-              v0.y := StrToFloatDef(SList[2], 0);
-              v0.z := StrToFloatDef(SList[3], 0);
-              Vary.Add(v0);
-            end
-            else if SList[0] = 'vn' then begin
-              v0.x := StrToFloatDef(SList[1], 0);
-              v0.y := StrToFloatDef(SList[2], 0);
-              v0.z := StrToFloatDef(SList[3], 0);
-              VNary.Add(v0); // 法線用配列など別にするのが一般的です
+               // 要素数が足りているか必ずチェック
+               if Length(SList) >= 4 then begin
+                  if SList[0] = 'v' then begin
+                     v0.x := StrToFloatDef(SList[1], 0);
+                     v0.y := StrToFloatDef(SList[2], 0);
+                     v0.z := StrToFloatDef(SList[3], 0);
+                     Vary.Add(v0);
+                  end
+                  else if SList[0] = 'vn' then begin
+                     v0.x := StrToFloatDef(SList[1], 0);
+                     v0.y := StrToFloatDef(SList[2], 0);
+                     v0.z := StrToFloatDef(SList[3], 0);
+                     VNary.Add(v0); // 法線用配列など別にするのが一般的です
+                  end;
+               end;
+            end;(* v,vn*)
+            if s[1]='f' then begin
+               SList:=SplitString(s, ' ');
+               FAry.add(SList[1],SList[2],SList[3]);
+               writeln('SList[1]=',SList[1]);
             end;
-          end;
-        end;
+         end;
+      finally
+         // StreamReaderをFreeすれば、関連付けられたFileStreamも解放されます
+         StreamReader.Free;
       end;
-    finally
-      // StreamReaderをFreeすれば、関連付けられたFileStreamも解放されます
-      StreamReader.Free;
-    end;
-  except
-    on E: Exception do begin
-      Writeln('エラーが発生しました: ', E.Message);
-    end;
-  end;
+   except
+      on E: Exception do begin
+         Writeln('エラーが発生しました: ', E.Message);
+      end;
+   end;
+end;
+
+
+procedure FaceArrayList.new;
+begin
+   SetLength(FA,0);
+end;
+
+procedure FaceArrayList.add(st0,st1,st2:string);
+var
+   SList: TStringDynArray;
+   vFA:FaceArray;
+begin
+   SList := SplitString(st0, '/');
+   vFA[0].VSuf :=StrToInt(SList[0]);
+   vFA[0].VNSuf:=StrToInt(SList[2]);
+
+   SList := SplitString(st1, '/');
+   vFA[1].VSuf :=StrToInt(SList[0]);
+   vFA[1].VNSuf:=StrToInt(SList[2]);
+
+   SList := SplitString(st2, '/');
+   vFA[2].VSuf :=StrToInt(SList[0]);
+   vFA[2].VNSuf:=StrToInt(SList[2]);
+   
+   Insert(vFA,FA,length(FA) );
 end;
 
 begin
