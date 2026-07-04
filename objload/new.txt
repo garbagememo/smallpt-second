@@ -1,1 +1,26 @@
 GeminiさんでObjリーダー、レンダラーを作ってみる
+下記の条件を出した
+以下の条件を満たすFreePascalのソースコードを示してください
+・空間座標は type Vec3=record x,y,z:real;end;と定義
+・Vec3については演算子オーバーロードで+,-,*,/を用いることが可能。
+・Vec3*Vec3は内積、Vec3/Vec3は外積とする。
+・3DオブジェクトフォーマットのObjファイルを読み込む
+・読み込んだポリゴンデータは下記の構造に変換する
+type
+ refl=(DIFF,SPEC,REFR);
+ RayRecord=record 
+   r:Vec3;(*視点の方向*)
+   x:Vec3;(*視点の座標*)
+   end;
+ PolygonClass=class
+    v:array[0..2] of Vec3;(*頂点座標*)
+    vn:array[0..2] of Vec3;(*頂点の法線座標*)
+    c:Vec3;(*ポリゴンの色*)
+    e:Vec3;(*発光の強度*)
+    ref:refl;(*ポリゴンのマテリアルタイプ、乱反射、鏡反射、透明の3タイプ*)
+    constructor create( v_,vn_:array[0..2] of Vec3;c_,e_:Vec3;ref_;refl);
+    function intersect(r:RayRecord):real;(*Rayを与えた時の交点を返す*)
+    function GetNorm(x:Vec3(*交点座標*) ):Vec3;(*交点を与えてその法線を得る*)
+end;
+
+・上記の条件を満たし、コーネルボックスのObjデータを出力し、レイトレーシングでレンダリングする
